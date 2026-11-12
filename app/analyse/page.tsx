@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { OFFERS, LANES } from "@/lib/data/quotes";
+import { useState, useEffect } from "react";
+import { OFFERS, LANES, type Offer } from "@/lib/data/quotes";
 import {
   calcTotal,
   scoreOffers,
@@ -20,6 +20,21 @@ const CRITERION_LABELS: Record<keyof CriterionWeights, string> = {
 };
 
 export default function AnalysePage() {
+  const [offers, setOffers] = useState<Offer[]>(OFFERS);
+  const [isUploaded, setIsUploaded] = useState(false);
+
+  useEffect(() => {
+    const stored = sessionStorage.getItem("extractedOffers");
+    if (stored) {
+      try {
+        setOffers(JSON.parse(stored));
+        setIsUploaded(true);
+      } catch {
+        // malformed — fall back to demo data silently
+      }
+    }
+  }, []);
+
   const [activeLane, setActiveLane] = useState<LaneNumber>(1);
   const [rawWeights, setRawWeights] = useState<CriterionWeights>({
     cost: 40,
@@ -40,7 +55,7 @@ export default function AnalysePage() {
           reliability: (rawWeights.reliability / weightSum) * 100,
         };
 
-  const laneOffers = OFFERS.filter((o) => o.lane === activeLane);
+  const laneOffers = offers.filter((o) => o.lane === activeLane);
   const scores = scoreOffers(laneOffers, weights);
   const winner = findWinner(scores);
   const sortedScores = [...scores].sort((a, b) => b.weightedScore - a.weightedScore);
@@ -51,6 +66,25 @@ export default function AnalysePage() {
       <div className="bg-amber-100 border-b border-amber-300 px-4 py-2 text-center text-sm font-medium text-amber-800">
         SYNTHETIC DATA — All companies, prices, forwarders, and routes are fictional and for academic use only.
       </div>
+
+      {isUploaded ? (
+        <div className="bg-blue-50 border-b border-blue-200 px-4 py-2 text-center text-sm text-blue-700">
+          Showing <strong>uploaded quote data</strong> ({offers.length} offers extracted by Gemini AI).{" "}
+          <button
+            onClick={() => { sessionStorage.removeItem("extractedOffers"); setOffers(OFFERS); setIsUploaded(false); }}
+            className="underline underline-offset-2 hover:text-blue-900"
+          >
+            Switch back to demo data
+          </button>
+        </div>
+      ) : (
+        <div className="bg-slate-100 border-b border-slate-200 px-4 py-2 text-center text-sm text-slate-500">
+          Using demo data.{" "}
+          <a href="/upload" className="underline underline-offset-2 hover:text-slate-700">
+            Upload real quote files →
+          </a>
+        </div>
+      )}
 
       <header className="bg-slate-900 text-white px-6 py-4 flex items-center justify-between">
         <div>

@@ -51,12 +51,15 @@ export default function Home() {
             best-value carrier per lane — with editable scoring weights and a clear explanation.
           </p>
           <a
-            href="/analyse"
+            href="/upload"
             className="inline-block bg-blue-700 hover:bg-blue-800 text-white font-semibold px-6 py-3 rounded-lg text-base transition-colors"
           >
-            Analyse tender →
+            Import tender →
           </a>
-          <p className="text-xs text-slate-400 mt-2">4 forwarders · 3 lanes · 12 quotes loaded.</p>
+          <p className="text-xs text-slate-400 mt-2">
+            Upload PDF, DOCX, XLSX, or CSV quote files.{" "}
+            <a href="/analyse" className="underline hover:text-slate-600">Skip to demo →</a>
+          </p>
         </div>
 
         {/* Lane overview cards */}
