@@ -49,7 +49,14 @@ export default function UploadPage() {
       const form = new FormData();
       files.forEach((f) => form.append("files", f));
 
-      const res = await fetch("/api/extract", { method: "POST", body: form });
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 55000);
+      let res: Response;
+      try {
+        res = await fetch("/api/extract", { method: "POST", body: form, signal: controller.signal });
+      } finally {
+        clearTimeout(timeout);
+      }
       const data = await res.json();
 
       if (!res.ok) throw new Error(data.error ?? "Extraction failed");
@@ -57,7 +64,8 @@ export default function UploadPage() {
       sessionStorage.setItem("extractedOffers", JSON.stringify(data.offers));
       router.push("/analyse");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      const msg = err instanceof Error ? err.message : "Something went wrong.";
+      setError(msg.includes("aborted") ? "Request timed out — Gemini took too long. Please try again." : msg);
     } finally {
       setLoading(false);
     }

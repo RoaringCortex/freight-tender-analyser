@@ -38,6 +38,8 @@ Rules:
 - All monetary amounts must be plain numbers in USD — no $ signs, no commas
 - Return ONLY a valid JSON array — no markdown, no code blocks, no explanation text`;
 
+export const maxDuration = 60;
+
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
@@ -52,39 +54,27 @@ export async function POST(request: NextRequest) {
     }
 
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const MODELS = ["gemini-3.8-flash", "gemini-2.5-flash", "gemini-2.0-flash-lite"];
+    const model = genAI.getGenerativeModel({ model: "gemini-3.8-flash" });
 
     const allOffers: object[] = [];
 
     for (const file of files) {
-      let lastError: Error | null = null;
-      let succeeded = false;
-
-      for (const modelName of MODELS) {
-        for (let attempt = 1; attempt <= 3; attempt++) {
-          try {
-            const model = genAI.getGenerativeModel({ model: modelName });
-            const offers = await extractFromFile(file, model);
-            allOffers.push(...offers);
-            succeeded = true;
-            break;
-          } catch (err) {
-            lastError = err instanceof Error ? err : new Error(String(err));
-            const is503 = lastError.message.includes("503");
-            if (!is503) break; // non-503 errors won't be fixed by retrying
-            if (attempt < 3) await new Promise((r) => setTimeout(r, 3000 * attempt));
-          }
-        }
-        if (succeeded) break;
-      }
-
-      if (!succeeded) throw lastError;
+      const offers = await extractFromFile(file, model);
+      allOffers.push(...offers);
     }
 
     return NextResponse.json({ offers: allOffers });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Extraction failed";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const is503 = message.includes("503");
+    return NextResponse.json(
+      {
+        error: is503
+          ? "Gemini is currently overloaded. Please wait 1–2 minutes and try again."
+          : message,
+      },
+      { status: 500 },
+    );
   }
 }
 
