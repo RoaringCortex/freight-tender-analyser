@@ -42,20 +42,39 @@ export type ExtractionStatus = {
   error?: string;
 };
 
+const MODELS = [
+  "gemini-3.8-flash",
+  "gemini-2.5-flash",
+  "gemini-2.5-flash-preview-05-20",
+  "gemini-2.0-flash-lite",
+];
+
 export async function extractOffersFromFile(
   file: File,
   apiKey: string,
 ): Promise<object[]> {
   const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: "gemini-3.8-flash" });
-  const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+  let lastError: Error = new Error("No models available");
 
-  if (ext === "pdf") return extractFromPDF(file, model);
-  if (ext === "xlsx" || ext === "xls") return extractFromSpreadsheet(file, model, "XLSX");
-  if (ext === "csv") return extractFromSpreadsheet(file, model, "CSV");
-  if (ext === "docx" || ext === "doc") return extractFromDocx(file, model);
+  for (const modelName of MODELS) {
+    try {
+      const model = genAI.getGenerativeModel({ model: modelName });
+      const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
 
-  throw new Error(`Unsupported file type: .${ext}`);
+      if (ext === "pdf")  return await extractFromPDF(file, model);
+      if (ext === "xlsx" || ext === "xls") return await extractFromSpreadsheet(file, model, "XLSX");
+      if (ext === "csv")  return await extractFromSpreadsheet(file, model, "CSV");
+      if (ext === "docx" || ext === "doc") return await extractFromDocx(file, model);
+
+      throw new Error(`Unsupported file type: .${ext}`);
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+      const isTransient = lastError.message.includes("503") || lastError.message.includes("overload");
+      if (!isTransient) throw lastError; // non-503 errors won't be fixed by trying another model
+    }
+  }
+
+  throw new Error(`All Gemini models are currently busy. Please wait a minute and try again. (${lastError.message})`);
 }
 
 async function extractFromPDF(
