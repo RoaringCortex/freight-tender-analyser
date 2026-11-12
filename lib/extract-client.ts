@@ -42,39 +42,36 @@ export type ExtractionStatus = {
   error?: string;
 };
 
-const MODELS = [
-  "gemini-3.8-flash",
-  "gemini-2.5-flash",
-  "gemini-2.5-flash-preview-05-20",
-  "gemini-2.0-flash-lite",
-];
+const MODEL = "gemini-3.8-flash";
+const MAX_RETRIES = 6;
+const RETRY_DELAY_MS = 8000;
 
 export async function extractOffersFromFile(
   file: File,
   apiKey: string,
+  onRetry?: (attempt: number, max: number) => void,
 ): Promise<object[]> {
   const genAI = new GoogleGenerativeAI(apiKey);
-  let lastError: Error = new Error("No models available");
+  const model = genAI.getGenerativeModel({ model: MODEL });
+  const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
 
-  for (const modelName of MODELS) {
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
-      const model = genAI.getGenerativeModel({ model: modelName });
-      const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
-
       if (ext === "pdf")  return await extractFromPDF(file, model);
       if (ext === "xlsx" || ext === "xls") return await extractFromSpreadsheet(file, model, "XLSX");
       if (ext === "csv")  return await extractFromSpreadsheet(file, model, "CSV");
       if (ext === "docx" || ext === "doc") return await extractFromDocx(file, model);
-
       throw new Error(`Unsupported file type: .${ext}`);
     } catch (err) {
-      lastError = err instanceof Error ? err : new Error(String(err));
-      const isTransient = lastError.message.includes("503") || lastError.message.includes("overload");
-      if (!isTransient) throw lastError; // non-503 errors won't be fixed by trying another model
+      const msg = err instanceof Error ? err.message : String(err);
+      const is503 = msg.includes("503");
+      if (!is503 || attempt === MAX_RETRIES) throw err;
+      onRetry?.(attempt, MAX_RETRIES);
+      await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
     }
   }
 
-  throw new Error(`All Gemini models are currently busy. Please wait a minute and try again. (${lastError.message})`);
+  throw new Error("Gemini is busy — all retries exhausted.");
 }
 
 async function extractFromPDF(

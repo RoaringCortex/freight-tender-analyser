@@ -21,6 +21,7 @@ type FileState = {
   file: File;
   status: FileStatus;
   error?: string;
+  retryInfo?: string;
 };
 
 function fileExt(name: string) {
@@ -34,9 +35,9 @@ export default function UploadPage() {
   const [dragging, setDragging] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  function setStatus(name: string, status: FileStatus, error?: string) {
+  function setStatus(name: string, status: FileStatus, error?: string, retryInfo?: string) {
     setFileStates((prev) =>
-      prev.map((f) => (f.file.name === name ? { ...f, status, error } : f)),
+      prev.map((f) => (f.file.name === name ? { ...f, status, error, retryInfo } : f)),
     );
   }
 
@@ -72,7 +73,9 @@ export default function UploadPage() {
     for (const { file } of fileStates) {
       setStatus(file.name, "extracting");
       try {
-        const offers = await extractOffersFromFile(file, apiKey);
+        const offers = await extractOffersFromFile(file, apiKey, (attempt, max) => {
+          setStatus(file.name, "extracting", undefined, `Gemini busy — retrying (${attempt}/${max})…`);
+        });
         allOffers.push(...offers);
         setStatus(file.name, "done");
       } catch (err) {
@@ -147,7 +150,7 @@ export default function UploadPage() {
         {/* File list */}
         {fileStates.length > 0 && (
           <ul className="space-y-2">
-            {fileStates.map(({ file, status, error }) => {
+            {fileStates.map(({ file, status, error, retryInfo }) => {
               const ext = fileExt(file.name);
               return (
                 <li key={file.name} className="bg-white border border-slate-200 rounded-lg px-4 py-3">
@@ -163,7 +166,11 @@ export default function UploadPage() {
                     </div>
                     <div className="flex items-center gap-2 ml-4 shrink-0">
                       {status === "pending"    && <span className="text-xs text-slate-400">Pending</span>}
-                      {status === "extracting" && <span className="text-xs text-blue-600 animate-pulse">Extracting…</span>}
+                      {status === "extracting" && (
+                        <span className="text-xs text-blue-600 animate-pulse">
+                          {retryInfo ?? "Extracting…"}
+                        </span>
+                      )}
                       {status === "done"       && <span className="text-xs text-emerald-600 font-medium">✓ Done</span>}
                       {status === "error"      && <span className="text-xs text-red-500 font-medium">✗ Error</span>}
                       {!loading && (
