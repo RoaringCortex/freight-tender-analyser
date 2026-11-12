@@ -52,13 +52,33 @@ export async function POST(request: NextRequest) {
     }
 
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-3.8-flash" });
+    const MODELS = ["gemini-3.8-flash", "gemini-2.5-flash", "gemini-2.0-flash-lite"];
 
     const allOffers: object[] = [];
 
     for (const file of files) {
-      const offers = await extractFromFile(file, model);
-      allOffers.push(...offers);
+      let lastError: Error | null = null;
+      let succeeded = false;
+
+      for (const modelName of MODELS) {
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          try {
+            const model = genAI.getGenerativeModel({ model: modelName });
+            const offers = await extractFromFile(file, model);
+            allOffers.push(...offers);
+            succeeded = true;
+            break;
+          } catch (err) {
+            lastError = err instanceof Error ? err : new Error(String(err));
+            const is503 = lastError.message.includes("503");
+            if (!is503) break; // non-503 errors won't be fixed by retrying
+            if (attempt < 3) await new Promise((r) => setTimeout(r, 3000 * attempt));
+          }
+        }
+        if (succeeded) break;
+      }
+
+      if (!succeeded) throw lastError;
     }
 
     return NextResponse.json({ offers: allOffers });
