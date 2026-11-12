@@ -50,14 +50,13 @@ export default function Home() {
             Upload forwarder quotes in any format, convert all charges to USD, and find the
             best-value carrier per lane — with editable scoring weights and a clear explanation.
           </p>
-          <button
-            className="bg-blue-700 hover:bg-blue-800 text-white font-semibold px-6 py-3 rounded-lg text-base transition-colors cursor-not-allowed opacity-80"
-            disabled
-            title="File upload coming soon"
+          <a
+            href="/analyse"
+            className="inline-block bg-blue-700 hover:bg-blue-800 text-white font-semibold px-6 py-3 rounded-lg text-base transition-colors"
           >
-            Import tender
-          </button>
-          <p className="text-xs text-slate-400 mt-2">File upload not yet available in this build.</p>
+            Analyse tender →
+          </a>
+          <p className="text-xs text-slate-400 mt-2">4 forwarders · 3 lanes · 12 quotes loaded.</p>
         </div>
 
         {/* Lane overview cards */}
@@ -73,8 +72,8 @@ export default function Home() {
                   <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                     Lane {lane.number}
                   </span>
-                  <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">
-                    No offers yet
+                  <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">
+                    4 offers
                   </span>
                 </div>
                 <h3 className="font-semibold text-slate-800 mb-2">{lane.name}</h3>
