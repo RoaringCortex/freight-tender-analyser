@@ -74,7 +74,7 @@ export default function UploadPage() {
       setStatus(file.name, "extracting");
       try {
         const offers = await extractOffersFromFile(file, apiKey, (attempt, max) => {
-          setStatus(file.name, "extracting", undefined, `Gemini busy — retrying (${attempt}/${max})…`);
+          setStatus(file.name, "extracting", undefined, `Busy — retrying (${attempt}/${max})…`);
         });
         allOffers.push(...offers);
         setStatus(file.name, "done");

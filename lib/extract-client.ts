@@ -1,4 +1,3 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import * as XLSX from "xlsx";
 
 const PROMPT = `You are extracting freight forwarder quote data from a shipping tender document.
@@ -36,62 +35,83 @@ Rules:
 - All monetary amounts must be plain numbers in USD — no $ signs, no commas
 - Return ONLY a valid JSON array — no markdown, no code blocks, no explanation text`;
 
-export type ExtractionStatus = {
-  file: string;
-  status: "pending" | "extracting" | "done" | "error";
-  error?: string;
-};
-
 const MODEL = "gemini-3.8-flash";
+const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
 const MAX_RETRIES = 6;
 const RETRY_DELAY_MS = 8000;
+
+async function callGemini(
+  apiKey: string,
+  parts: object[],
+): Promise<string> {
+  const body = {
+    contents: [{ parts }],
+  };
+
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    const res = await fetch(`${API_URL}?key=${apiKey}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+
+    const json = await res.json();
+
+    // Try to extract text from the response body first, regardless of HTTP status
+    const text: string | undefined =
+      json?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+    if (text) return text;
+
+    // No usable text — check if it's a 503 worth retrying
+    const is503 =
+      res.status === 503 ||
+      JSON.stringify(json).includes("503") ||
+      JSON.stringify(json).includes("overload") ||
+      JSON.stringify(json).includes("high demand");
+
+    if (!is503 || attempt === MAX_RETRIES) {
+      throw new Error(
+        `Gemini error (HTTP ${res.status}): ${JSON.stringify(json).slice(0, 300)}`,
+      );
+    }
+
+    await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+  }
+
+  throw new Error("Gemini did not return a response after all retries.");
+}
 
 export async function extractOffersFromFile(
   file: File,
   apiKey: string,
   onRetry?: (attempt: number, max: number) => void,
 ): Promise<object[]> {
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: MODEL });
   const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
 
-  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-    try {
-      if (ext === "pdf")  return await extractFromPDF(file, model);
-      if (ext === "xlsx" || ext === "xls") return await extractFromSpreadsheet(file, model, "XLSX");
-      if (ext === "csv")  return await extractFromSpreadsheet(file, model, "CSV");
-      if (ext === "docx" || ext === "doc") return await extractFromDocx(file, model);
-      throw new Error(`Unsupported file type: .${ext}`);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      const is503 = msg.includes("503");
-      if (!is503 || attempt === MAX_RETRIES) throw err;
-      onRetry?.(attempt, MAX_RETRIES);
-      await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
-    }
-  }
+  if (ext === "pdf")  return extractFromPDF(file, apiKey);
+  if (ext === "xlsx" || ext === "xls") return extractFromSpreadsheet(file, apiKey, "XLSX");
+  if (ext === "csv")  return extractFromSpreadsheet(file, apiKey, "CSV");
+  if (ext === "docx" || ext === "doc") return extractFromDocx(file, apiKey);
 
-  throw new Error("Gemini is busy — all retries exhausted.");
+  throw new Error(`Unsupported file type: .${ext}`);
 }
 
-async function extractFromPDF(
-  file: File,
-  model: ReturnType<GoogleGenerativeAI["getGenerativeModel"]>,
-) {
+async function extractFromPDF(file: File, apiKey: string) {
   const buffer = await file.arrayBuffer();
   const base64 = arrayBufferToBase64(buffer);
 
-  const result = await model.generateContent([
-    PROMPT + "\n\nThe source file type is PDF.",
-    { inlineData: { mimeType: "application/pdf", data: base64 } },
+  const text = await callGemini(apiKey, [
+    { text: PROMPT + "\n\nThe source file type is PDF." },
+    { inline_data: { mime_type: "application/pdf", data: base64 } },
   ]);
 
-  return parseGeminiResponse(result.response.text(), "PDF");
+  return parseGeminiResponse(text, "PDF");
 }
 
 async function extractFromSpreadsheet(
   file: File,
-  model: ReturnType<GoogleGenerativeAI["getGenerativeModel"]>,
+  apiKey: string,
   source: "XLSX" | "CSV",
 ) {
   const buffer = await file.arrayBuffer();
@@ -103,36 +123,31 @@ async function extractFromSpreadsheet(
     if (csv.trim()) csvParts.push(`--- Sheet: ${sheetName} ---\n${csv}`);
   }
 
-  const result = await model.generateContent([
-    PROMPT + `\n\nThe source file type is ${source}.`,
-    csvParts.join("\n\n"),
+  const text = await callGemini(apiKey, [
+    { text: PROMPT + `\n\nThe source file type is ${source}.` },
+    { text: csvParts.join("\n\n") },
   ]);
 
-  return parseGeminiResponse(result.response.text(), source);
+  return parseGeminiResponse(text, source);
 }
 
-async function extractFromDocx(
-  file: File,
-  model: ReturnType<GoogleGenerativeAI["getGenerativeModel"]>,
-) {
-  // Dynamic import so mammoth's browser bundle is used correctly
+async function extractFromDocx(file: File, apiKey: string) {
   const mammoth = await import("mammoth");
   const arrayBuffer = await file.arrayBuffer();
-  const { value: text } = await mammoth.extractRawText({ arrayBuffer });
+  const { value: extracted } = await mammoth.extractRawText({ arrayBuffer });
 
-  if (text.trim().length < 50) {
+  if (extracted.trim().length < 50) {
     throw new Error(
-      `"${file.name}" appears to contain image-only content — text extraction found nothing. ` +
-        `Please convert it to PDF and upload that instead.`,
+      `"${file.name}" appears to contain image-only content. Please convert it to PDF and upload that instead.`,
     );
   }
 
-  const result = await model.generateContent([
-    PROMPT + "\n\nThe source file type is DOCX.",
-    text,
+  const text = await callGemini(apiKey, [
+    { text: PROMPT + "\n\nThe source file type is DOCX." },
+    { text: extracted },
   ]);
 
-  return parseGeminiResponse(result.response.text(), "DOCX");
+  return parseGeminiResponse(text, "DOCX");
 }
 
 function parseGeminiResponse(raw: string, source: string): object[] {
