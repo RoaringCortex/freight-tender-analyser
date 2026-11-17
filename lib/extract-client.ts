@@ -36,7 +36,8 @@ Rules:
 - "per": use "container" if the charge is per TEU/container, "shipment" if per shipment/booking, "filing" if per customs entry
 - "inScope": false for Origin Local Charges and Customs/Excise filing fees (excluded under FOB Osaka incoterm). true for all other charges.
 - All monetary amounts must be plain numbers in USD — no $ signs, no commas
-- Return ONLY a valid JSON array — no markdown, no code blocks, no explanation text`;
+- Return a JSON object with a single key "offers" containing the array: {"offers": [...]}
+- No markdown, no code blocks, no explanation text`;
 
 async function callGroq(apiKey: string, content: string): Promise<string> {
   const res = await fetch(GROQ_URL, {
@@ -48,7 +49,14 @@ async function callGroq(apiKey: string, content: string): Promise<string> {
     body: JSON.stringify({
       model: GROQ_MODEL,
       temperature: 0,
-      messages: [{ role: "user", content }],
+      response_format: { type: "json_object" },
+      messages: [
+        {
+          role: "system",
+          content: "You are a data extraction assistant. Always respond with valid JSON only.",
+        },
+        { role: "user", content },
+      ],
     }),
   });
 
@@ -137,7 +145,7 @@ async function extractFromDocx(file: File, apiKey: string) {
 
 async function extractTextFromPDF(file: File): Promise<string> {
   const pdfjsLib = await import("pdfjs-dist");
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
   const arrayBuffer = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
@@ -158,13 +166,13 @@ async function extractTextFromPDF(file: File): Promise<string> {
 function parseGroqResponse(raw: string, source: string): object[] {
   let text = raw.trim();
   text = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "");
-  const match = text.match(/\[[\s\S]*\]/);
-  if (match) text = match[0];
 
   try {
     const parsed = JSON.parse(text);
-    if (!Array.isArray(parsed)) throw new Error("Response is not a JSON array");
-    return parsed.map((o) => ({ ...o, source }));
+    // Handle {"offers": [...]} wrapper
+    const arr = Array.isArray(parsed) ? parsed : (parsed?.offers ?? []);
+    if (!Array.isArray(arr)) throw new Error("No offers array found in response");
+    return arr.map((o: object) => ({ ...o, source }));
   } catch {
     throw new Error(
       `Could not parse response as JSON. Raw response: ${raw.slice(0, 300)}`,
