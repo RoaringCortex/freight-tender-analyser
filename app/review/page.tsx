@@ -249,7 +249,7 @@ export default function ReviewPage() {
                               type="text"
                               value={charge.name}
                               onChange={(e) => updateSurcharge(oi, si, "name", e.target.value)}
-                              className="border border-slate-200 rounded px-2 py-1 text-sm w-full focus:outline-none focus:border-blue-400"
+                              className="border border-slate-200 rounded px-2 py-1 text-sm text-slate-900 w-full focus:outline-none focus:border-blue-400"
                             />
                           </td>
                           <td className="py-2 pr-3">
@@ -258,14 +258,14 @@ export default function ReviewPage() {
                               min={0}
                               value={charge.amountUSD}
                               onChange={(e) => updateSurcharge(oi, si, "amountUSD", Number(e.target.value))}
-                              className="border border-slate-200 rounded px-2 py-1 text-sm w-24 text-right focus:outline-none focus:border-blue-400 ml-auto block"
+                              className="border border-slate-200 rounded px-2 py-1 text-sm text-slate-900 w-24 text-right focus:outline-none focus:border-blue-400 ml-auto block"
                             />
                           </td>
                           <td className="py-2 pr-3 text-center">
                             <select
                               value={charge.per}
                               onChange={(e) => updateSurcharge(oi, si, "per", e.target.value)}
-                              className="border border-slate-200 rounded px-2 py-1 text-sm focus:outline-none focus:border-blue-400"
+                              className="border border-slate-200 rounded px-2 py-1 text-sm text-slate-900 focus:outline-none focus:border-blue-400"
                             >
                               <option value="container">container</option>
                               <option value="shipment">shipment</option>
