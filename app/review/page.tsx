@@ -74,6 +74,25 @@ export default function ReviewPage() {
     );
   }
 
+  function addSurcharge(oi: number) {
+    setOffers((prev) =>
+      prev.map((o, idx) => {
+        if (idx !== oi) return o;
+        const newCharge: Charge = { name: "", amountUSD: 0, per: "container", inScope: true };
+        return { ...o, surcharges: [...o.surcharges, newCharge] };
+      }),
+    );
+  }
+
+  function removeSurcharge(oi: number, si: number) {
+    setOffers((prev) =>
+      prev.map((o, idx) => {
+        if (idx !== oi) return o;
+        return { ...o, surcharges: o.surcharges.filter((_, j) => j !== si) };
+      }),
+    );
+  }
+
   function handleConfirm() {
     sessionStorage.setItem("extractedOffers", JSON.stringify(offers));
     router.push("/analyse");
@@ -218,7 +237,8 @@ export default function ReviewPage() {
                         <th className="text-left pb-2 font-medium text-slate-500 w-1/2">Charge name</th>
                         <th className="text-right pb-2 font-medium text-slate-500 pr-3">Amount (USD)</th>
                         <th className="text-center pb-2 font-medium text-slate-500 pr-3">Per</th>
-                        <th className="text-center pb-2 font-medium text-slate-500">In scope</th>
+                        <th className="text-center pb-2 font-medium text-slate-500 pr-3">In scope</th>
+                        <th className="pb-2 w-6" />
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50">
@@ -252,7 +272,7 @@ export default function ReviewPage() {
                               <option value="filing">filing</option>
                             </select>
                           </td>
-                          <td className="py-2 text-center">
+                          <td className="py-2 pr-3 text-center">
                             <input
                               type="checkbox"
                               checked={charge.inScope}
@@ -261,14 +281,31 @@ export default function ReviewPage() {
                               title={charge.inScope ? "In scope — included in cost" : "Out of scope — excluded from cost"}
                             />
                           </td>
+                          <td className="py-2 text-center">
+                            <button
+                              onClick={() => removeSurcharge(oi, si)}
+                              className="text-slate-300 hover:text-red-400 text-lg leading-none transition-colors"
+                              title="Remove this surcharge"
+                            >
+                              ×
+                            </button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
-                <p className="text-xs text-slate-400 mt-2">
-                  Unchecked = out of scope (excluded from total cost under FOB Osaka incoterm).
-                </p>
+                <div className="flex items-center justify-between mt-3">
+                  <p className="text-xs text-slate-400">
+                    Unchecked = out of scope (excluded from total cost under FOB Osaka incoterm).
+                  </p>
+                  <button
+                    onClick={() => addSurcharge(oi)}
+                    className="text-xs text-blue-600 hover:text-blue-800 font-medium underline underline-offset-2 transition-colors"
+                  >
+                    + Add surcharge
+                  </button>
+                </div>
               </div>
             </div>
           </div>
