@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { extractOffersFromFile } from "@/lib/extract-client";
+import { OFFERS } from "@/lib/data/quotes";
 
 const ACCEPTED_EXTENSIONS = [".pdf", ".docx", ".xlsx", ".csv"];
 
@@ -118,7 +119,7 @@ export default function UploadPage() {
           <h2 className="text-2xl font-bold text-slate-800 mb-1">Import tender quotes</h2>
           <p className="text-slate-500 text-sm">
             Upload one file per forwarder. Supported formats: PDF, DOCX, XLSX, CSV.
-            Gemini AI reads each file and extracts the charges directly in your browser.
+            Groq AI reads each file and extracts the charges directly in your browser.
           </p>
         </div>
 
@@ -213,9 +214,15 @@ export default function UploadPage() {
             </button>
           )}
 
-          <a href="/analyse" className="text-sm text-slate-500 hover:text-slate-700 underline underline-offset-2">
+          <button
+            onClick={() => {
+              sessionStorage.setItem("extractedOffers", JSON.stringify(OFFERS));
+              router.push("/review");
+            }}
+            className="text-sm text-slate-500 hover:text-slate-700 underline underline-offset-2"
+          >
             Skip — use demo data
-          </a>
+          </button>
         </div>
 
         {allDone && (
