@@ -39,35 +39,57 @@ Rules:
 - Return a JSON object with a single key "offers" containing the array: {"offers": [...]}
 - No markdown, no code blocks, no explanation text`;
 
-async function callGroq(apiKey: string, content: string): Promise<string> {
-  const res = await fetch(GROQ_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: GROQ_MODEL,
-      temperature: 0,
-      response_format: { type: "json_object" },
-      messages: [
-        {
-          role: "system",
-          content: "You are a data extraction assistant. Always respond with valid JSON only.",
-        },
-        { role: "user", content },
-      ],
-    }),
-  });
+async function callGroq(
+  apiKey: string,
+  content: string,
+  onRetry?: (attempt: number, max: number) => void,
+): Promise<string> {
+  const MAX_RETRIES = 4;
 
-  const json = await res.json();
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    const res = await fetch(GROQ_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: GROQ_MODEL,
+        temperature: 0,
+        response_format: { type: "json_object" },
+        messages: [
+          {
+            role: "system",
+            content: "You are a data extraction assistant. Always respond with valid JSON only.",
+          },
+          { role: "user", content },
+        ],
+      }),
+    });
 
-  const text: string | undefined = json?.choices?.[0]?.message?.content;
-  if (text) return text;
+    const json = await res.json();
 
-  throw new Error(
-    `Groq error (HTTP ${res.status}): ${JSON.stringify(json).slice(0, 300)}`,
-  );
+    if (res.status === 429) {
+      if (attempt === MAX_RETRIES) {
+        throw new Error(`Rate limit exceeded after ${MAX_RETRIES} attempts. Wait a minute then retry.`);
+      }
+      // Parse the wait time Groq tells us, default to 5s if not found
+      const match = JSON.stringify(json).match(/try again in (\d+\.?\d*)s/i);
+      const waitMs = match ? Math.ceil(parseFloat(match[1]) * 1000) + 500 : 5000;
+      onRetry?.(attempt, MAX_RETRIES);
+      await new Promise((resolve) => setTimeout(resolve, waitMs));
+      continue;
+    }
+
+    const text: string | undefined = json?.choices?.[0]?.message?.content;
+    if (text) return text;
+
+    throw new Error(
+      `Groq error (HTTP ${res.status}): ${JSON.stringify(json).slice(0, 300)}`,
+    );
+  }
+
+  throw new Error("Max retries exceeded");
 }
 
 export async function extractOffersFromFile(
@@ -77,15 +99,15 @@ export async function extractOffersFromFile(
 ): Promise<object[]> {
   const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
 
-  if (ext === "pdf")  return extractFromPDF(file, apiKey);
-  if (ext === "xlsx" || ext === "xls") return extractFromSpreadsheet(file, apiKey, "XLSX");
-  if (ext === "csv")  return extractFromSpreadsheet(file, apiKey, "CSV");
-  if (ext === "docx" || ext === "doc") return extractFromDocx(file, apiKey);
+  if (ext === "pdf")  return extractFromPDF(file, apiKey, onRetry);
+  if (ext === "xlsx" || ext === "xls") return extractFromSpreadsheet(file, apiKey, "XLSX", onRetry);
+  if (ext === "csv")  return extractFromSpreadsheet(file, apiKey, "CSV", onRetry);
+  if (ext === "docx" || ext === "doc") return extractFromDocx(file, apiKey, onRetry);
 
   throw new Error(`Unsupported file type: .${ext}`);
 }
 
-async function extractFromPDF(file: File, apiKey: string) {
+async function extractFromPDF(file: File, apiKey: string, onRetry?: (attempt: number, max: number) => void) {
   const text = await extractTextFromPDF(file);
 
   if (text.trim().length < 50) {
@@ -97,6 +119,7 @@ async function extractFromPDF(file: File, apiKey: string) {
   const response = await callGroq(
     apiKey,
     `${PROMPT}\n\nThe source file type is PDF.\n\n---\n${text}`,
+    onRetry,
   );
 
   return parseGroqResponse(response, "PDF");
@@ -106,6 +129,7 @@ async function extractFromSpreadsheet(
   file: File,
   apiKey: string,
   source: "XLSX" | "CSV",
+  onRetry?: (attempt: number, max: number) => void,
 ) {
   const buffer = await file.arrayBuffer();
   const workbook = XLSX.read(buffer, { type: "buffer" });
@@ -119,12 +143,13 @@ async function extractFromSpreadsheet(
   const response = await callGroq(
     apiKey,
     `${PROMPT}\n\nThe source file type is ${source}.\n\n---\n${csvParts.join("\n\n")}`,
+    onRetry,
   );
 
   return parseGroqResponse(response, source);
 }
 
-async function extractFromDocx(file: File, apiKey: string) {
+async function extractFromDocx(file: File, apiKey: string, onRetry?: (attempt: number, max: number) => void) {
   const mammoth = await import("mammoth");
   const arrayBuffer = await file.arrayBuffer();
   const { value: text } = await mammoth.extractRawText({ arrayBuffer });
@@ -138,6 +163,7 @@ async function extractFromDocx(file: File, apiKey: string) {
   const response = await callGroq(
     apiKey,
     `${PROMPT}\n\nThe source file type is DOCX.\n\n---\n${text}`,
+    onRetry,
   );
 
   return parseGroqResponse(response, "DOCX");
