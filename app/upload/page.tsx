@@ -88,7 +88,7 @@ export default function UploadPage() {
 
     if (allOffers.length > 0) {
       sessionStorage.setItem("extractedOffers", JSON.stringify(allOffers));
-      router.push("/analyse");
+      router.push("/review");
     }
   }
 
