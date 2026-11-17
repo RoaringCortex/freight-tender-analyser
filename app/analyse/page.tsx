@@ -60,6 +60,7 @@ export default function AnalysePage() {
   const winner = findWinner(scores);
   const sortedScores = [...scores].sort((a, b) => b.weightedScore - a.weightedScore);
   const laneInfo = LANES.find((l) => l.number === activeLane)!;
+  const noOffers = laneOffers.length === 0;
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -128,6 +129,11 @@ export default function AnalysePage() {
         {/* ── Step 5: Cost breakdown ── */}
         <section>
           <h2 className="text-lg font-semibold text-slate-800 mb-1">Step 5 — Cost breakdown</h2>
+          {noOffers && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-700 mb-4">
+              No offers found for this lane in the uploaded data. Try a different lane or upload more files.
+            </div>
+          )}
           <p className="text-sm text-slate-500 mb-4">
             In-scope charges only (FOB Osaka — origin &amp; customs excluded). Cost per container,
             assuming {CONTAINERS_PER_SHIPMENT} containers per shipment.
@@ -153,7 +159,7 @@ export default function AnalysePage() {
                     offer.surcharges.find((c) => c.name.startsWith("Destination"))?.amountUSD ?? 0;
                   const war =
                     offer.surcharges.find((c) => c.name.startsWith("War"))?.amountUSD ?? 0;
-                  const isWinner = offer.forwarder === winner.offer.forwarder;
+                  const isWinner = winner != null && offer.forwarder === winner.offer.forwarder;
                   return (
                     <tr
                       key={offer.forwarder}
@@ -254,17 +260,23 @@ export default function AnalysePage() {
           </p>
 
           {/* Winner callout */}
-          <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-5 mb-6">
-            <p className="text-xs font-semibold uppercase tracking-widest text-emerald-600 mb-1">
-              Recommended award — Lane {activeLane} · {laneInfo.name}
-            </p>
-            <p className="text-2xl font-bold text-emerald-800">{winner.offer.forwarder}</p>
-            <p className="text-sm text-emerald-700 mt-1">
-              Total cost ${winner.totalUSD.toLocaleString()} / container · Weighted score{" "}
-              {winner.weightedScore.toFixed(1)} / 100
-            </p>
-            <p className="text-sm text-slate-600 mt-2 italic">{winner.offer.notes}</p>
-          </div>
+          {winner ? (
+            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-5 mb-6">
+              <p className="text-xs font-semibold uppercase tracking-widest text-emerald-600 mb-1">
+                Recommended award — Lane {activeLane} · {laneInfo.name}
+              </p>
+              <p className="text-2xl font-bold text-emerald-800">{winner.offer.forwarder}</p>
+              <p className="text-sm text-emerald-700 mt-1">
+                Total cost ${winner.totalUSD.toLocaleString()} / container · Weighted score{" "}
+                {winner.weightedScore.toFixed(1)} / 100
+              </p>
+              <p className="text-sm text-slate-600 mt-2 italic">{winner.offer.notes}</p>
+            </div>
+          ) : (
+            <div className="bg-slate-100 border border-slate-200 rounded-xl p-5 mb-6 text-slate-500 text-sm">
+              No offers available for this lane.
+            </div>
+          )}
 
           {/* Ranked score table */}
           <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">

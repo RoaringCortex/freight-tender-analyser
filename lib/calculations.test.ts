@@ -60,16 +60,16 @@ describe("findWinner — cost-only", () => {
 
   it("lane 1 cheapest is K-Logistics Spirit ($3,780)", () => {
     const scores = scoreOffers(OFFERS.filter((o) => o.lane === 1), weights);
-    expect(findWinner(scores).offer.forwarder).toBe("K-Logistics Spirit");
+    expect(findWinner(scores)!.offer.forwarder).toBe("K-Logistics Spirit");
   });
 
   it("lane 2 cheapest is K-Logistics Spirit ($3,830)", () => {
     const scores = scoreOffers(OFFERS.filter((o) => o.lane === 2), weights);
-    expect(findWinner(scores).offer.forwarder).toBe("K-Logistics Spirit");
+    expect(findWinner(scores)!.offer.forwarder).toBe("K-Logistics Spirit");
   });
 
   it("lane 3 cheapest is Nippon Pacific Cargo ($4,240)", () => {
     const scores = scoreOffers(OFFERS.filter((o) => o.lane === 3), weights);
-    expect(findWinner(scores).offer.forwarder).toBe("Nippon Pacific Cargo");
+    expect(findWinner(scores)!.offer.forwarder).toBe("Nippon Pacific Cargo");
   });
 });

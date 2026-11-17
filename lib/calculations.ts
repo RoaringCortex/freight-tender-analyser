@@ -79,7 +79,8 @@ export function scoreOffers(
   });
 }
 
-export function findWinner(scores: OfferScore[]): OfferScore {
+export function findWinner(scores: OfferScore[]): OfferScore | null {
+  if (!scores.length) return null;
   return scores.reduce((best, s) => (s.weightedScore > best.weightedScore ? s : best));
 }
 
@@ -90,6 +91,7 @@ export function findSensitivity(
 ): string {
   const scores = scoreOffers(offers, weights, containersPerShipment);
   const winner = findWinner(scores);
+  if (!winner) return "No offers to analyse.";
   const winnerForwarder = winner.offer.forwarder;
 
   const criteria = ["cost", "transit", "demurrage", "reliability"] as const;
@@ -106,7 +108,7 @@ export function findSensitivity(
 
       const testScores = scoreOffers(offers, testWeights, containersPerShipment);
       const testWinner = findWinner(testScores);
-      if (testWinner.offer.forwarder !== winnerForwarder) {
+      if (testWinner && testWinner.offer.forwarder !== winnerForwarder) {
         results.push(`Winner changes if ${criterion} weight reaches ${w}%`);
         break;
       }
