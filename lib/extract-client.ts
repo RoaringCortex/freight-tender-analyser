@@ -1,5 +1,8 @@
 import * as XLSX from "xlsx";
 
+const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
+const GROQ_MODEL = "llama-3.3-70b-versatile";
+
 const PROMPT = `You are extracting freight forwarder quote data from a shipping tender document.
 
 The document contains quotes for one forwarder across up to three shipping lanes:
@@ -35,54 +38,28 @@ Rules:
 - All monetary amounts must be plain numbers in USD — no $ signs, no commas
 - Return ONLY a valid JSON array — no markdown, no code blocks, no explanation text`;
 
-const MODEL = "gemini-3.8-flash";
-const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
-const MAX_RETRIES = 6;
-const RETRY_DELAY_MS = 8000;
+async function callGroq(apiKey: string, content: string): Promise<string> {
+  const res = await fetch(GROQ_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: GROQ_MODEL,
+      temperature: 0,
+      messages: [{ role: "user", content }],
+    }),
+  });
 
-async function callGemini(
-  apiKey: string,
-  parts: object[],
-): Promise<string> {
-  const body = {
-    contents: [{ parts }],
-  };
+  const json = await res.json();
 
-  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-    const res = await fetch(API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": apiKey,
-      },
-      body: JSON.stringify(body),
-    });
+  const text: string | undefined = json?.choices?.[0]?.message?.content;
+  if (text) return text;
 
-    const json = await res.json();
-
-    // Try to extract text from the response body first, regardless of HTTP status
-    const text: string | undefined =
-      json?.candidates?.[0]?.content?.parts?.[0]?.text;
-
-    if (text) return text;
-
-    // No usable text — check if it's a 503 worth retrying
-    const is503 =
-      res.status === 503 ||
-      JSON.stringify(json).includes("503") ||
-      JSON.stringify(json).includes("overload") ||
-      JSON.stringify(json).includes("high demand");
-
-    if (!is503 || attempt === MAX_RETRIES) {
-      throw new Error(
-        `Gemini error (HTTP ${res.status}): ${JSON.stringify(json).slice(0, 300)}`,
-      );
-    }
-
-    await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
-  }
-
-  throw new Error("Gemini did not return a response after all retries.");
+  throw new Error(
+    `Groq error (HTTP ${res.status}): ${JSON.stringify(json).slice(0, 300)}`,
+  );
 }
 
 export async function extractOffersFromFile(
@@ -101,15 +78,20 @@ export async function extractOffersFromFile(
 }
 
 async function extractFromPDF(file: File, apiKey: string) {
-  const buffer = await file.arrayBuffer();
-  const base64 = arrayBufferToBase64(buffer);
+  const text = await extractTextFromPDF(file);
 
-  const text = await callGemini(apiKey, [
-    { text: PROMPT + "\n\nThe source file type is PDF." },
-    { inline_data: { mime_type: "application/pdf", data: base64 } },
-  ]);
+  if (text.trim().length < 50) {
+    throw new Error(
+      `"${file.name}" appears to be a scanned/image PDF with no readable text. Please use a text-based PDF.`,
+    );
+  }
 
-  return parseGeminiResponse(text, "PDF");
+  const response = await callGroq(
+    apiKey,
+    `${PROMPT}\n\nThe source file type is PDF.\n\n---\n${text}`,
+  );
+
+  return parseGroqResponse(response, "PDF");
 }
 
 async function extractFromSpreadsheet(
@@ -126,34 +108,54 @@ async function extractFromSpreadsheet(
     if (csv.trim()) csvParts.push(`--- Sheet: ${sheetName} ---\n${csv}`);
   }
 
-  const text = await callGemini(apiKey, [
-    { text: PROMPT + `\n\nThe source file type is ${source}.` },
-    { text: csvParts.join("\n\n") },
-  ]);
+  const response = await callGroq(
+    apiKey,
+    `${PROMPT}\n\nThe source file type is ${source}.\n\n---\n${csvParts.join("\n\n")}`,
+  );
 
-  return parseGeminiResponse(text, source);
+  return parseGroqResponse(response, source);
 }
 
 async function extractFromDocx(file: File, apiKey: string) {
   const mammoth = await import("mammoth");
   const arrayBuffer = await file.arrayBuffer();
-  const { value: extracted } = await mammoth.extractRawText({ arrayBuffer });
+  const { value: text } = await mammoth.extractRawText({ arrayBuffer });
 
-  if (extracted.trim().length < 50) {
+  if (text.trim().length < 50) {
     throw new Error(
       `"${file.name}" appears to contain image-only content. Please convert it to PDF and upload that instead.`,
     );
   }
 
-  const text = await callGemini(apiKey, [
-    { text: PROMPT + "\n\nThe source file type is DOCX." },
-    { text: extracted },
-  ]);
+  const response = await callGroq(
+    apiKey,
+    `${PROMPT}\n\nThe source file type is DOCX.\n\n---\n${text}`,
+  );
 
-  return parseGeminiResponse(text, "DOCX");
+  return parseGroqResponse(response, "DOCX");
 }
 
-function parseGeminiResponse(raw: string, source: string): object[] {
+async function extractTextFromPDF(file: File): Promise<string> {
+  const pdfjsLib = await import("pdfjs-dist");
+  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+  const pages: string[] = [];
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    const pageText = content.items
+      .map((item) => ("str" in item ? item.str : ""))
+      .join(" ");
+    pages.push(pageText);
+  }
+
+  return pages.join("\n\n");
+}
+
+function parseGroqResponse(raw: string, source: string): object[] {
   let text = raw.trim();
   text = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "");
   const match = text.match(/\[[\s\S]*\]/);
@@ -165,16 +167,7 @@ function parseGeminiResponse(raw: string, source: string): object[] {
     return parsed.map((o) => ({ ...o, source }));
   } catch {
     throw new Error(
-      `Could not parse Gemini response as JSON. Raw response: ${raw.slice(0, 300)}`,
+      `Could not parse response as JSON. Raw response: ${raw.slice(0, 300)}`,
     );
   }
-}
-
-function arrayBufferToBase64(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer);
-  let binary = "";
-  for (let i = 0; i < bytes.byteLength; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return btoa(binary);
 }

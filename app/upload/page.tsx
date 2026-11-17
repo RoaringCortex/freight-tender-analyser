@@ -59,10 +59,10 @@ export default function UploadPage() {
   async function handleExtract() {
     if (!fileStates.length || loading) return;
 
-    const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+    const apiKey = process.env.NEXT_PUBLIC_GROQ_API_KEY;
     if (!apiKey) {
       setFileStates((prev) =>
-        prev.map((f) => ({ ...f, status: "error", error: "NEXT_PUBLIC_GEMINI_API_KEY is not set" })),
+        prev.map((f) => ({ ...f, status: "error", error: "NEXT_PUBLIC_GROQ_API_KEY is not set" })),
       );
       return;
     }
