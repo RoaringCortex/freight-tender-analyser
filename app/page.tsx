@@ -22,20 +22,14 @@ export default function Home() {
             Annual Freight Tender Analyser
           </p>
         </div>
-        <a
-          href="/method-note"
-          className="text-sm text-slate-300 hover:text-white underline underline-offset-2 transition-colors"
-        >
-          Method note
-        </a>
       </header>
 
       <main className="max-w-5xl mx-auto px-6 py-12">
         {/* Description and primary action */}
         <div className="mb-10">
           <p className="text-slate-600 text-lg mb-6 max-w-2xl leading-relaxed">
-            Upload forwarder quotes in any format, convert all charges to USD, and find the
-            best-value carrier per lane — with editable scoring weights and a clear explanation.
+            Upload forwarder quotes in any format and find the best-value carrier per lane —
+            with editable scoring weights and a clear explanation.
           </p>
           <a
             href="/upload"

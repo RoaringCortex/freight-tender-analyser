@@ -232,7 +232,7 @@ export default function UploadPage() {
         )}
 
         <p className="text-xs text-slate-400">
-          Files are processed locally in your browser by Gemini AI. Nothing is uploaded to our servers or stored permanently.
+          Files are processed locally in your browser by Groq AI. Nothing is uploaded to our servers or stored permanently.
         </p>
       </main>
     </div>
