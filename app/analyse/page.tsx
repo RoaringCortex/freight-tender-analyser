@@ -71,7 +71,7 @@ export default function AnalysePage() {
 
       {isUploaded ? (
         <div className="bg-blue-50 border-b border-blue-200 px-4 py-2 text-center text-sm text-blue-700">
-          Showing <strong>uploaded quote data</strong> ({offers.length} offers extracted by Gemini AI).{" "}
+          Showing <strong>uploaded quote data</strong> ({offers.length} offers extracted by Groq AI).{" "}
           <button
             onClick={() => { sessionStorage.removeItem("extractedOffers"); setOffers(OFFERS); setIsUploaded(false); }}
             className="underline underline-offset-2 hover:text-blue-900"
