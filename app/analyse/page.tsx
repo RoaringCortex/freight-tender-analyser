@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { OFFERS, LANES, type Offer } from "@/lib/data/quotes";
+import LaneMap from "@/components/LaneMap";
 import {
   calcTotal,
   scoreOffers,
@@ -108,21 +109,7 @@ export default function AnalysePage() {
           <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-3">
             Select lane
           </h2>
-          <div className="flex gap-2 flex-wrap">
-            {LANES.map((lane) => (
-              <button
-                key={lane.number}
-                onClick={() => setActiveLane(lane.number as LaneNumber)}
-                className={`px-4 py-2.5 rounded-lg text-sm font-medium border transition-colors ${
-                  activeLane === lane.number
-                    ? "bg-slate-900 text-white border-slate-900"
-                    : "bg-white text-slate-700 border-slate-300 hover:border-slate-500"
-                }`}
-              >
-                Lane {lane.number} — {lane.name}
-              </button>
-            ))}
-          </div>
+          <LaneMap activeLane={activeLane} onLaneChange={setActiveLane} />
           <p className="mt-2 text-xs text-slate-500 font-mono">{laneInfo.routing}</p>
         </section>
 
