@@ -5,8 +5,8 @@ import { useEffect, useRef } from "react";
 type LaneNumber = 1 | 2 | 3;
 
 interface Props {
-  activeLane: LaneNumber;
-  onLaneChange: (lane: LaneNumber) => void;
+  activeLane?: LaneNumber;
+  onLaneChange?: (lane: LaneNumber) => void;
 }
 
 // Coordinate transform: lon/lat → SVG pixel
@@ -175,9 +175,11 @@ export default function LaneMap({ activeLane, onLaneChange }: Props) {
         "stroke-dasharray": lane.dashArray,
         "stroke-linecap": "round",
         "stroke-linejoin": "round",
-        style: "cursor:pointer;transition:opacity 0.15s",
+        style: `transition:opacity 0.15s${cbRef.current ? ";cursor:pointer" : ""}`,
       });
-      path.addEventListener("click", () => cbRef.current((i + 1) as LaneNumber));
+      if (cbRef.current) {
+        path.addEventListener("click", () => cbRef.current!((i + 1) as LaneNumber));
+      }
       return path;
     });
 
@@ -218,7 +220,8 @@ export default function LaneMap({ activeLane, onLaneChange }: Props) {
   // Update route highlight when active lane changes
   useEffect(() => {
     pathsRef.current.forEach((path, i) => {
-      path.setAttribute("opacity", i + 1 === activeLane ? "0.95" : "0.2");
+      const opacity = activeLane === undefined ? "0.9" : i + 1 === activeLane ? "0.95" : "0.2";
+      path.setAttribute("opacity", opacity);
     });
   }, [activeLane]);
 
@@ -232,34 +235,36 @@ export default function LaneMap({ activeLane, onLaneChange }: Props) {
         role="img"
         aria-label="Shipping lanes map from Osaka to Fos-sur-Mer"
       />
-      <div className="flex flex-wrap gap-2 px-4 py-3 bg-white border-t border-slate-100">
-        {LANE_DEFS.map((lane, i) => {
-          const active = activeLane === i + 1;
-          return (
-            <button
-              key={i}
-              onClick={() => onLaneChange((i + 1) as LaneNumber)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors border"
-              style={{
-                borderColor: active ? lane.color : "#e2e8f0",
-                color: active ? lane.color : "#64748b",
-                fontWeight: active ? 600 : 400,
-                background: active ? `${lane.color}18` : "transparent",
-              }}
-            >
-              <span
+      {onLaneChange && (
+        <div className="flex flex-wrap gap-2 px-4 py-3 bg-white border-t border-slate-100">
+          {LANE_DEFS.map((lane, i) => {
+            const active = activeLane === i + 1;
+            return (
+              <button
+                key={i}
+                onClick={() => onLaneChange((i + 1) as LaneNumber)}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors border"
                 style={{
-                  display: "inline-block",
-                  width: 20,
-                  height: 0,
-                  borderTop: `2.5px ${i === 0 ? "solid" : i === 1 ? "dashed" : "dotted"} ${active ? lane.color : "#94a3b8"}`,
+                  borderColor: active ? lane.color : "#e2e8f0",
+                  color: active ? lane.color : "#64748b",
+                  fontWeight: active ? 600 : 400,
+                  background: active ? `${lane.color}18` : "transparent",
                 }}
-              />
-              {lane.name}
-            </button>
-          );
-        })}
-      </div>
+              >
+                <span
+                  style={{
+                    display: "inline-block",
+                    width: 20,
+                    height: 0,
+                    borderTop: `2.5px ${i === 0 ? "solid" : i === 1 ? "dashed" : "dotted"} ${active ? lane.color : "#94a3b8"}`,
+                  }}
+                />
+                {lane.name}
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

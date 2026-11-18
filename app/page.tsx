@@ -1,22 +1,9 @@
+import LaneMap from "@/components/LaneMap";
+
 const LANES = [
-  {
-    number: 1,
-    name: "Cape of Good Hope",
-    routing: "JPOSA → CNNGB → TWKHH → SGSIN → ESVLC → FRFOS",
-    transit: "38–45 days",
-  },
-  {
-    number: 2,
-    name: "Suez Canal",
-    routing: "JPOSA → CNNGB → CNXMN → SGSIN → ITGIT → FRFOS",
-    transit: "28–34 days",
-  },
-  {
-    number: 3,
-    name: "Arctic (NSR)",
-    routing: "JPOSA → KRPUS → RUPEV → RUSBW → NLRTM → FRFOS",
-    transit: "22–25 days",
-  },
+  { color: "#1D9E75", name: "Lane 1 — Cape of Good Hope", routing: "JPOSA → CNNGB → TWKHH → SGSIN → ESVLC → FRFOS", transit: "38–44 days" },
+  { color: "#D85A30", name: "Lane 2 — Suez Canal",         routing: "JPOSA → CNNGB → CNXMN → SGSIN → ITGIT → FRFOS", transit: "27–33 days" },
+  { color: "#7F77DD", name: "Lane 3 — Arctic (NSR)",       routing: "JPOSA → KRPUS → RUPEV → RUSBW → NLRTM → FRFOS", transit: "21–24 days" },
 ];
 
 export default function Home() {
@@ -62,28 +49,22 @@ export default function Home() {
           </p>
         </div>
 
-        {/* Lane overview cards */}
+        {/* Lane map */}
         <section>
-          <h2 className="text-slate-800 font-semibold text-lg mb-4">Lanes</h2>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <h2 className="text-slate-800 font-semibold text-lg mb-4">Shipping Lanes</h2>
+          <LaneMap />
+          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
             {LANES.map((lane) => (
-              <div
-                key={lane.number}
-                className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm"
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                    Lane {lane.number}
-                  </span>
-                  <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">
-                    4 offers
-                  </span>
+              <div key={lane.name} className="flex gap-3">
+                <div
+                  className="w-0.5 rounded-full flex-shrink-0 mt-1"
+                  style={{ background: lane.color, alignSelf: "stretch" }}
+                />
+                <div>
+                  <p className="text-sm font-semibold text-slate-700">{lane.name}</p>
+                  <p className="text-xs text-slate-500 font-mono mt-0.5 leading-relaxed">{lane.routing}</p>
+                  <p className="text-xs text-slate-500 mt-1">Transit: {lane.transit}</p>
                 </div>
-                <h3 className="font-semibold text-slate-800 mb-2">{lane.name}</h3>
-                <p className="text-xs text-slate-500 font-mono leading-relaxed mb-3">
-                  {lane.routing}
-                </p>
-                <p className="text-xs text-slate-500">Typical transit: {lane.transit}</p>
               </div>
             ))}
           </div>
