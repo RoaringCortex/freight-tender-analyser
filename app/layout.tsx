@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Freight Tender Analyser",
-  description: "Compare freight forwarder quotes for the Saint JAP 2027 tender — synthetic academic project",
+  title: "Maison Japonaise",
+  description: "Annual Freight Tender Analyser — Compare freight forwarder quotes for the 2027 tender.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

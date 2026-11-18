@@ -17,9 +17,9 @@ export default function Home() {
       {/* Top navigation bar */}
       <header className="bg-slate-900 text-white px-6 py-4 flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold tracking-tight">Freight Tender Analyser</h1>
+          <h1 className="text-xl font-bold tracking-tight">Maison Japonaise</h1>
           <p className="text-slate-400 text-sm mt-0.5">
-            Saint JAP · Port of Osaka → Marseille-Fos · 2027 annual contract
+            Annual Freight Tender Analyser
           </p>
         </div>
         <a
