@@ -1,7 +1,7 @@
 import * as XLSX from "xlsx";
 
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
-const GROQ_MODEL = "llama-3.3-70b-versatile";
+const GROQ_MODEL = "qwen/qwen3.8-27b";
 
 const PROMPT = `You are extracting freight forwarder quote data from a shipping tender document.
 
