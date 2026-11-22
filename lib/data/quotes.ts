@@ -6,6 +6,7 @@ export type Charge = {
   amountUSD: number;
   per: "container" | "shipment" | "filing";
   inScope: boolean;
+  _originalAmount?: number;
 };
 
 export type Offer = {
@@ -22,6 +23,10 @@ export type Offer = {
   reliabilityPctMin: number;
   reliabilityPctMax: number;
   operatingWindow: string;
+  currency?: string;
+  _originalCurrency?: string;
+  _originalOceanFreight?: number;
+  customValues?: Record<string, number | null>;
   notes: string;
 };
 

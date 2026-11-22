@@ -1,9 +1,17 @@
 import * as XLSX from "xlsx";
 
-const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
-const GROQ_MODEL = "openai/gpt-oss-20b";
+const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro-preview:generateContent";
 
-const PROMPT = `You are extracting freight forwarder quote data from a shipping tender document.
+type CustomCriterionInput = { key: string; label: string; description: string };
+
+function buildPrompt(customCriteria: CustomCriterionInput[] = []): string {
+  const customSection = customCriteria.length > 0
+    ? `\n\nAlso extract these custom values for each lane and add them as a "customValues" object:\n${customCriteria.map((c) => `- "${c.key}": ${c.description}`).join("\n")}\nIf a value is not found in the document, use null.\nExample: "customValues": { "${customCriteria[0].key}": 14 }`
+    : `\n\nAdd "customValues": {} to each lane.`;
+  return PROMPT_BASE + customSection;
+}
+
+const PROMPT_BASE = `You are extracting freight forwarder quote data from a shipping tender document.
 
 The document contains quotes for one forwarder across up to three shipping lanes:
 - Lane 1: Cape of Good Hope route (transit ~38-45 days, via South Africa)
@@ -17,7 +25,6 @@ Each element must follow this exact structure (all fields required):
   "forwarder": "exact company name from document",
   "lane": 1,
   "source": "PDF",
-  "pricingType": "fixed",
   "oceanFreightUSD": 2450,
   "surcharges": [
     { "name": "Thermal Protection Add-on", "amountUSD": 350, "per": "container", "inScope": true }
@@ -29,41 +36,41 @@ Each element must follow this exact structure (all fields required):
   "reliabilityPctMin": 85,
   "reliabilityPctMax": 90,
   "operatingWindow": "Year-round",
+  "currency": "USD",
   "notes": "brief description"
 }
 
 Rules:
 - "per": use "container" if the charge is per TEU/container, "shipment" if per shipment/booking, "filing" if per customs entry
 - "inScope": false for Origin Local Charges and Customs/Excise filing fees (excluded under FOB Osaka incoterm). true for all other charges.
-- All monetary amounts must be plain numbers in USD — no $ signs, no commas
+- "currency": ISO 4217 three-letter code of the currency used for all monetary amounts in this quote (e.g. "USD", "JPY", "EUR"). Default to "USD" if not stated.
+- All monetary amounts must be plain numbers in the stated currency — no currency symbols, no commas
 - Return a JSON object with a single key "offers" containing the array: {"offers": [...]}
 - No markdown, no code blocks, no explanation text`;
 
-async function callGroq(
+async function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve((reader.result as string).split(",")[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function callGemini(
   apiKey: string,
-  content: string,
+  parts: object[],
   onRetry?: (attempt: number, max: number) => void,
 ): Promise<string> {
   const MAX_RETRIES = 4;
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-    const res = await fetch(GROQ_URL, {
+    const res = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`,
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: GROQ_MODEL,
-        temperature: 0,
-        response_format: { type: "json_object" },
-        messages: [
-          {
-            role: "system",
-            content: "You are a data extraction assistant. Always respond with valid JSON only.",
-          },
-          { role: "user", content },
-        ],
+        contents: [{ parts }],
+        generationConfig: { responseMimeType: "application/json" },
       }),
     });
 
@@ -73,19 +80,16 @@ async function callGroq(
       if (attempt === MAX_RETRIES) {
         throw new Error(`Rate limit exceeded after ${MAX_RETRIES} attempts. Wait a minute then retry.`);
       }
-      // Parse the wait time Groq tells us, default to 5s if not found
-      const match = JSON.stringify(json).match(/try again in (\d+\.?\d*)s/i);
-      const waitMs = match ? Math.ceil(parseFloat(match[1]) * 1000) + 500 : 5000;
       onRetry?.(attempt, MAX_RETRIES);
-      await new Promise((resolve) => setTimeout(resolve, waitMs));
+      await new Promise((resolve) => setTimeout(resolve, 5000));
       continue;
     }
 
-    const text: string | undefined = json?.choices?.[0]?.message?.content;
+    const text: string | undefined = json?.candidates?.[0]?.content?.parts?.[0]?.text;
     if (text) return text;
 
     throw new Error(
-      `Groq error (HTTP ${res.status}): ${JSON.stringify(json).slice(0, 300)}`,
+      `Gemini error (HTTP ${res.status}): ${JSON.stringify(json).slice(0, 300)}`,
     );
   }
 
@@ -96,33 +100,56 @@ export async function extractOffersFromFile(
   file: File,
   apiKey: string,
   onRetry?: (attempt: number, max: number) => void,
+  exchangeRates?: Record<string, number>,
+  customCriteria?: CustomCriterionInput[],
 ): Promise<object[]> {
   const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+  const prompt = buildPrompt(customCriteria);
 
-  if (ext === "pdf")  return extractFromPDF(file, apiKey, onRetry);
-  if (ext === "xlsx" || ext === "xls") return extractFromSpreadsheet(file, apiKey, "XLSX", onRetry);
-  if (ext === "csv")  return extractFromSpreadsheet(file, apiKey, "CSV", onRetry);
-  if (ext === "docx" || ext === "doc") return extractFromDocx(file, apiKey, onRetry);
+  let offers: object[];
+  if (ext === "pdf")  offers = await extractFromPDF(file, apiKey, onRetry, prompt);
+  else if (ext === "xlsx" || ext === "xls") offers = await extractFromSpreadsheet(file, apiKey, "XLSX", onRetry, prompt);
+  else if (ext === "csv")  offers = await extractFromSpreadsheet(file, apiKey, "CSV", onRetry, prompt);
+  else if (ext === "docx" || ext === "doc") offers = await extractFromDocx(file, apiKey, onRetry, prompt);
+  else throw new Error(`Unsupported file type: .${ext}`);
 
-  throw new Error(`Unsupported file type: .${ext}`);
+  return convertCurrency(offers, exchangeRates);
 }
 
-async function extractFromPDF(file: File, apiKey: string, onRetry?: (attempt: number, max: number) => void) {
-  const text = await extractTextFromPDF(file);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function convertCurrency(offers: object[], exchangeRates?: Record<string, number>): object[] {
+  if (!exchangeRates) return offers;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return offers.map((o: any) => {
+    const currency: string = o.currency ?? "USD";
+    const rate = currency !== "USD" ? exchangeRates[currency] : null;
+    if (!rate) return o;
+    return {
+      ...o,
+      _originalCurrency: currency,
+      _originalOceanFreight: o.oceanFreightUSD,
+      oceanFreightUSD: Math.round(o.oceanFreightUSD / rate),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      surcharges: (o.surcharges ?? []).map((s: any) => ({
+        ...s,
+        _originalAmount: s.amountUSD,
+        amountUSD: Math.round(s.amountUSD / rate),
+      })),
+    };
+  });
+}
 
-  if (text.trim().length < 50) {
-    throw new Error(
-      `"${file.name}" appears to be a scanned/image PDF with no readable text. Please use a text-based PDF.`,
-    );
-  }
-
-  const response = await callGroq(
+async function extractFromPDF(file: File, apiKey: string, onRetry?: (attempt: number, max: number) => void, prompt = buildPrompt()) {
+  const base64 = await fileToBase64(file);
+  const response = await callGemini(
     apiKey,
-    `${PROMPT}\n\nThe source file type is PDF.\n\n---\n${text}`,
+    [
+      { inlineData: { mimeType: "application/pdf", data: base64 } },
+      { text: `${prompt}\n\nThe source file type is PDF.` },
+    ],
     onRetry,
   );
-
-  return parseGroqResponse(response, "PDF");
+  return parseResponse(response, "PDF");
 }
 
 async function extractFromSpreadsheet(
@@ -130,6 +157,7 @@ async function extractFromSpreadsheet(
   apiKey: string,
   source: "XLSX" | "CSV",
   onRetry?: (attempt: number, max: number) => void,
+  prompt = buildPrompt(),
 ) {
   const buffer = await file.arrayBuffer();
   const workbook = XLSX.read(buffer, { type: "buffer" });
@@ -140,16 +168,15 @@ async function extractFromSpreadsheet(
     if (csv.trim()) csvParts.push(`--- Sheet: ${sheetName} ---\n${csv}`);
   }
 
-  const response = await callGroq(
+  const response = await callGemini(
     apiKey,
-    `${PROMPT}\n\nThe source file type is ${source}.\n\n---\n${csvParts.join("\n\n")}`,
+    [{ text: `${prompt}\n\nThe source file type is ${source}.\n\n---\n${csvParts.join("\n\n")}` }],
     onRetry,
   );
-
-  return parseGroqResponse(response, source);
+  return parseResponse(response, source);
 }
 
-async function extractFromDocx(file: File, apiKey: string, onRetry?: (attempt: number, max: number) => void) {
+async function extractFromDocx(file: File, apiKey: string, onRetry?: (attempt: number, max: number) => void, prompt = buildPrompt()) {
   const mammoth = await import("mammoth");
   const arrayBuffer = await file.arrayBuffer();
   const { value: text } = await mammoth.extractRawText({ arrayBuffer });
@@ -160,42 +187,20 @@ async function extractFromDocx(file: File, apiKey: string, onRetry?: (attempt: n
     );
   }
 
-  const response = await callGroq(
+  const response = await callGemini(
     apiKey,
-    `${PROMPT}\n\nThe source file type is DOCX.\n\n---\n${text}`,
+    [{ text: `${prompt}\n\nThe source file type is DOCX.\n\n---\n${text}` }],
     onRetry,
   );
-
-  return parseGroqResponse(response, "DOCX");
+  return parseResponse(response, "DOCX");
 }
 
-async function extractTextFromPDF(file: File): Promise<string> {
-  const pdfjsLib = await import("pdfjs-dist");
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
-
-  const arrayBuffer = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-
-  const pages: string[] = [];
-  for (let i = 1; i <= pdf.numPages; i++) {
-    const page = await pdf.getPage(i);
-    const content = await page.getTextContent();
-    const pageText = content.items
-      .map((item) => ("str" in item ? item.str : ""))
-      .join(" ");
-    pages.push(pageText);
-  }
-
-  return pages.join("\n\n");
-}
-
-function parseGroqResponse(raw: string, source: string): object[] {
+function parseResponse(raw: string, source: string): object[] {
   let text = raw.trim();
   text = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "");
 
   try {
     const parsed = JSON.parse(text);
-    // Handle {"offers": [...]} wrapper
     const arr = Array.isArray(parsed) ? parsed : (parsed?.offers ?? []);
     if (!Array.isArray(arr)) throw new Error("No offers array found in response");
     return arr.map((o: object) => ({ ...o, source }));
