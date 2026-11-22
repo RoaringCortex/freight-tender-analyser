@@ -39,6 +39,45 @@ type AiResult = {
   lane3: string | null;
 };
 
+function TrophyIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+      <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+      <path d="M4 22h16" />
+      <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
+      <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
+      <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
+    </svg>
+  );
+}
+
+function ScoreBar({ score }: { score: number }) {
+  return (
+    <div className="flex items-center gap-3">
+      <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+        <div
+          className="h-full bg-blue-500 rounded-full"
+          style={{ width: `${Math.min(score, 100)}%` }}
+        />
+      </div>
+      <span className="font-mono text-xs tabular-nums text-slate-400 w-10 text-right shrink-0">
+        {score.toFixed(1)}
+      </span>
+    </div>
+  );
+}
+
 export default function AwardPage() {
   const router = useRouter();
   const [loaded, setLoaded] = useState(false);
@@ -61,7 +100,6 @@ export default function AwardPage() {
     let offers: Offer[];
     try { offers = JSON.parse(stored); } catch { router.replace("/upload"); return; }
 
-    // Load weights, exchange rates, and custom criteria from settings
     let w: CriterionWeights = { cost: 40, transit: 20, demurrage: 20, reliability: 20 };
     let exchangeRates: Record<string, number> = {};
     let customCriteria: CustomCriterionDef[] = [];
@@ -85,7 +123,6 @@ export default function AwardPage() {
       }
     } catch { /* use defaults */ }
 
-    // Score each lane
     const winners: Record<1 | 2 | 3, LaneWinner> = { 1: null, 2: null, 3: null };
     const allDropped: DroppedCriterion[] = [];
     ([1, 2, 3] as const).forEach((lane) => {
@@ -105,7 +142,6 @@ export default function AwardPage() {
     });
     setLaneWinners(winners);
 
-    // Find overall winner — most lane wins, then highest avg score
     const tally: Record<string, { count: number; scoreSum: number; totalSum: number }> = {};
     ([1, 2, 3] as const).forEach((lane) => {
       const w = winners[lane];
@@ -132,7 +168,6 @@ export default function AwardPage() {
 
     setLoaded(true);
 
-    // AI explanations
     const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
     if (!apiKey || !bestForwarder) return;
 
@@ -266,124 +301,184 @@ No markdown, no bullet points inside the text.`;
   return (
     <div className="min-h-screen bg-slate-950 text-white flex flex-col">
       {/* Nav */}
-      <nav className="px-8 py-5 flex items-center justify-between">
+      <nav className="px-8 py-5 flex items-center justify-between border-b border-slate-900">
         <a href="/" className="flex items-center gap-2">
-          <div className="w-7 h-7 bg-blue-500 rounded-md flex items-center justify-center text-white font-bold text-sm">T</div>
+          <div className="w-7 h-7 bg-blue-500 rounded-md flex items-center justify-center text-white font-bold text-sm">
+            T
+          </div>
           <span className="font-bold text-lg tracking-tight text-white">TenderAI</span>
         </a>
         <button
-          onClick={() => router.push("/upload")}
+          onClick={() => router.push("/review")}
           className="text-sm text-slate-400 hover:text-white transition-colors"
         >
           ← Back to review
         </button>
       </nav>
 
-      <main className="flex-1 max-w-4xl mx-auto w-full px-6 py-8 space-y-8">
-        <div ref={exportRef} className="space-y-8 px-6 py-6 rounded-2xl">
-        <div>
-          <p className="text-blue-400 text-xs font-semibold uppercase tracking-widest mb-1">
-            Award Recommendation
-          </p>
-          <h1 className="text-3xl font-extrabold text-white">Here is your winner.</h1>
-        </div>
+      <main className="flex-1 max-w-4xl mx-auto w-full px-6 py-10 space-y-10">
+        <div ref={exportRef} className="space-y-10 py-2">
 
-        {/* Overall winner box */}
-        {overallWinner ? (
-          <div className="bg-blue-950 border border-blue-700 rounded-2xl p-7">
-            <p className="text-xs font-semibold uppercase tracking-widest text-blue-400 mb-2">
-              Overall recommendation
-            </p>
-            <p className="text-4xl font-extrabold text-white mb-1">{overallWinner}</p>
-            <p className="text-blue-300 text-sm mb-1">
-              {overallWinnerLanes.length === 1
-                ? `Wins Lane ${overallWinnerLanes[0]}`
-                : `Wins Lane ${overallWinnerLanes.slice(0, -1).join(", ")} & Lane ${overallWinnerLanes[overallWinnerLanes.length - 1]}`}
-            </p>
-            <p className="text-blue-200 text-sm mb-5">
-              Avg. cost ${Math.round(overallAvgTotal).toLocaleString()} / container · Avg. score{" "}
-              {overallAvgScore.toFixed(1)} / 100
-            </p>
-            <div className="border-t border-blue-800 pt-4 min-h-[48px]">
-              {aiLoading && (
-                <p className="text-blue-400 text-sm animate-pulse">Generating AI analysis…</p>
-              )}
-              {aiError && <p className="text-red-400 text-sm">{aiError}</p>}
-              {aiResult?.overall && (
-                <p className="text-slate-200 text-sm leading-relaxed">{aiResult.overall}</p>
-              )}
-            </div>
-          </div>
-        ) : (
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-7 text-slate-400 text-sm">
-            No offers were found. Go back and upload quote files.
-          </div>
-        )}
+          {/* Page heading */}
+          <h1 className="text-3xl font-extrabold text-white tracking-tight">
+            Award recommendation
+          </h1>
 
-        {/* Lane winner cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {([1, 2, 3] as const).map((lane) => {
-            const w = laneWinners[lane];
-            const aiKey = `lane${lane}` as keyof AiResult;
-            const isOverall = w?.forwarder === overallWinner;
-            return (
-              <div
-                key={lane}
-                className={`bg-slate-900 border rounded-2xl p-5 space-y-3 ${
-                  isOverall ? "border-blue-700" : "border-slate-800"
-                }`}
-              >
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
-                    Lane {lane}
-                  </p>
-                  <p className="text-sm text-slate-300 mt-0.5">{LANE_NAMES[lane]}</p>
+          {/* Overall winner */}
+          {overallWinner ? (
+            <div className="bg-blue-950 border border-blue-800/50 rounded-2xl overflow-hidden">
+              <div className="px-8 pt-8 pb-7">
+                <div className="flex items-start gap-4">
+                  <div className="mt-0.5 w-9 h-9 rounded-lg bg-blue-900/70 border border-blue-700/50 flex items-center justify-center shrink-0 text-blue-300">
+                    <TrophyIcon />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight leading-tight">
+                      {overallWinner}
+                    </p>
+                    <p className="text-blue-300 text-sm mt-1.5">
+                      {overallWinnerLanes.length === 1
+                        ? `Wins Lane ${overallWinnerLanes[0]}`
+                        : `Wins ${overallWinnerLanes.slice(0, -1).map((l) => `Lane ${l}`).join(", ")} & Lane ${overallWinnerLanes[overallWinnerLanes.length - 1]}`}
+                    </p>
+                  </div>
                 </div>
 
-                {w ? (
-                  <>
-                    <div>
-                      <p className="text-lg font-bold text-white">{w.forwarder}</p>
-                      {isOverall && (
-                        <span className="text-xs text-blue-400 font-semibold">Overall winner</span>
-                      )}
-                    </div>
-                    <div className="text-xs text-slate-400 space-y-0.5">
-                      <p>${w.totalUSD.toLocaleString()} / container</p>
-                      <p>{w.transitDaysMin}–{w.transitDaysMax} days transit</p>
-                      <p>Score: {w.score.toFixed(1)} / 100</p>
-                    </div>
-                    {aiLoading && (
-                      <p className="text-xs text-slate-500 animate-pulse">Generating…</p>
-                    )}
-                    {aiResult?.[aiKey] && (
-                      <p className="text-xs text-slate-400 leading-relaxed">
-                        {aiResult[aiKey] as string}
-                      </p>
-                    )}
-                  </>
-                ) : (
-                  <p className="text-sm text-slate-600">No offers for this lane.</p>
+                <div className="mt-7 flex flex-wrap items-start gap-x-8 gap-y-4">
+                  <div>
+                    <p className="font-mono text-2xl font-bold text-white tabular-nums">
+                      ${Math.round(overallAvgTotal).toLocaleString()}
+                    </p>
+                    <p className="text-blue-400/80 text-xs mt-0.5">avg. per container</p>
+                  </div>
+                  <div className="hidden sm:block w-px bg-blue-800/40 self-stretch" />
+                  <div>
+                    <p className="font-mono text-2xl font-bold text-white tabular-nums">
+                      {overallAvgScore.toFixed(1)}
+                      <span className="text-blue-700 font-normal text-base"> / 100</span>
+                    </p>
+                    <p className="text-blue-400/80 text-xs mt-0.5">avg. weighted score</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="px-8 py-6 border-t border-blue-900/50 bg-blue-950/30">
+                {aiLoading && (
+                  <div className="animate-pulse space-y-2.5">
+                    <div className="h-3 bg-blue-900/60 rounded-full w-5/6" />
+                    <div className="h-3 bg-blue-900/60 rounded-full w-4/6" />
+                    <div className="h-3 bg-blue-900/60 rounded-full w-2/5" />
+                  </div>
+                )}
+                {aiError && (
+                  <p className="text-red-400 text-sm">{aiError}</p>
+                )}
+                {aiResult?.overall && (
+                  <p className="text-slate-200 text-sm leading-relaxed">{aiResult.overall}</p>
+                )}
+                {!aiLoading && !aiResult && !aiError && (
+                  <p className="text-blue-800 text-sm">AI analysis unavailable — API key not configured.</p>
                 )}
               </div>
-            );
-          })}
+            </div>
+          ) : (
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-7 text-slate-400 text-sm">
+              No offers were found. Go back and upload quote files.
+            </div>
+          )}
+
+          {/* Lane results */}
+          <div>
+            <h2 className="text-lg font-bold text-white mb-5">Lane results</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {([1, 2, 3] as const).map((lane) => {
+                const w = laneWinners[lane];
+                const aiKey = `lane${lane}` as keyof AiResult;
+                const isOverall = w?.forwarder === overallWinner;
+                return (
+                  <div
+                    key={lane}
+                    className={`rounded-2xl p-5 flex flex-col gap-5 ${
+                      isOverall
+                        ? "bg-blue-950/30 border border-blue-800/50"
+                        : "bg-slate-900 border border-slate-800"
+                    }`}
+                  >
+                    {/* Card header */}
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <span className="text-xs bg-slate-800 border border-slate-700/80 text-slate-400 px-2.5 py-1 rounded-full font-medium">
+                        Lane {lane}
+                      </span>
+                      {isOverall && (
+                        <span className="text-xs bg-blue-900/50 border border-blue-700/60 text-blue-300 px-2.5 py-1 rounded-full font-semibold">
+                          Overall winner
+                        </span>
+                      )}
+                    </div>
+
+                    {w ? (
+                      <>
+                        <div>
+                          <p className="text-xs text-slate-500 mb-1">{LANE_NAMES[lane]}</p>
+                          <p className="text-lg font-bold text-white leading-snug">{w.forwarder}</p>
+                        </div>
+
+                        <div className="space-y-2 text-sm">
+                          <div className="flex items-baseline justify-between gap-4">
+                            <span className="text-slate-500 shrink-0">Cost</span>
+                            <span className="font-mono text-white tabular-nums text-right">
+                              ${w.totalUSD.toLocaleString()}
+                              <span className="text-slate-500 font-normal"> /cont.</span>
+                            </span>
+                          </div>
+                          <div className="flex items-baseline justify-between gap-4">
+                            <span className="text-slate-500 shrink-0">Transit</span>
+                            <span className="font-mono text-white tabular-nums text-right">
+                              {w.transitDaysMin}–{w.transitDaysMax}
+                              <span className="text-slate-500 font-normal"> days</span>
+                            </span>
+                          </div>
+                        </div>
+
+                        <div>
+                          <p className="text-xs text-slate-500 mb-2">Weighted score</p>
+                          <ScoreBar score={w.score} />
+                        </div>
+
+                        {aiLoading && (
+                          <div className="animate-pulse space-y-1.5 pt-1 border-t border-slate-800">
+                            <div className="h-2.5 bg-slate-800 rounded-full w-full mt-3" />
+                            <div className="h-2.5 bg-slate-800 rounded-full w-3/4" />
+                          </div>
+                        )}
+                        {aiResult?.[aiKey] && (
+                          <p className="text-xs text-slate-400 leading-relaxed pt-4 border-t border-slate-800/60">
+                            {aiResult[aiKey] as string}
+                          </p>
+                        )}
+                      </>
+                    ) : (
+                      <p className="text-sm text-slate-600 flex-1">No offers for this lane.</p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
 
-        </div>
-
-        {/* Export — outside captured area */}
-        <div className="flex justify-end gap-3 py-6">
+        {/* Export actions */}
+        <div className="flex justify-end gap-3 pt-6 border-t border-slate-900">
           <button
             onClick={handleExport}
-            className="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-semibold px-6 py-3 rounded-xl text-sm transition-colors"
+            className="bg-slate-800 hover:bg-slate-700 active:bg-slate-600 border border-slate-700 text-white font-semibold px-6 py-3 rounded-xl text-sm transition-colors"
           >
             {copied ? "Copied ✓" : "Copy as text"}
           </button>
           <button
             onClick={handleImageExport}
             disabled={imageExporting}
-            className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-semibold px-6 py-3 rounded-xl text-sm transition-colors"
+            className="bg-blue-600 hover:bg-blue-500 active:bg-blue-400 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold px-6 py-3 rounded-xl text-sm transition-colors"
           >
             {imageExporting ? "Saving…" : "Save as image"}
           </button>

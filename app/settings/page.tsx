@@ -99,12 +99,30 @@ export default function SettingsPage() {
     setCriteria((prev) => prev.filter((c) => c.key !== key));
   }
 
+  function focusOn(key: string) {
+    setCriteria((prev) =>
+      prev.map((c) => ({ ...c, weight: c.key === key ? 100 : 0 }))
+    );
+  }
+
+  function resetToDefault() {
+    setCriteria(DEFAULT_CRITERIA);
+  }
+
   function handleSave() {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify({ companyName, criteria, exchangeRates }));
     router.push("/upload");
   }
 
   const weightSum = criteria.filter((c) => c.enabled).reduce((sum, c) => sum + c.weight, 0);
+
+  const isDefaultSettings =
+    !criteria.some((c) => c.custom) &&
+    criteria.length === DEFAULT_CRITERIA.length &&
+    DEFAULT_CRITERIA.every((def) => {
+      const current = criteria.find((c) => c.key === def.key);
+      return current && current.weight === def.weight && current.enabled === def.enabled;
+    });
 
   return (
     <div className="min-h-screen bg-slate-950 text-white flex flex-col">
@@ -181,9 +199,19 @@ export default function SettingsPage() {
 
         {/* Scoring weights */}
         <section className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-5">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold uppercase tracking-widest text-slate-400">Scoring weights</h2>
-            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <h2 className="text-sm font-semibold uppercase tracking-widest text-slate-400">Scoring weights</h2>
+              {!isDefaultSettings && (
+                <button
+                  onClick={resetToDefault}
+                  className="text-xs text-slate-500 hover:text-white transition-colors underline underline-offset-2"
+                >
+                  Reset to default
+                </button>
+              )}
+            </div>
+            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${
               weightSum === 100 ? "bg-emerald-900 text-emerald-400" : "bg-amber-900 text-amber-400"
             }`}>
               {weightSum}% {weightSum === 100 ? "✓" : "— must total 100%"}
@@ -192,29 +220,42 @@ export default function SettingsPage() {
 
           {criteria.map((c) => (
             <div key={c.key} className={`space-y-2 ${!c.enabled ? "opacity-40" : ""}`}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
                   <button
                     onClick={() => toggleCriterion(c.key)}
-                    className={`w-9 h-5 rounded-full transition-colors relative flex-shrink-0 ${
+                    className={`w-10 h-5 rounded-full transition-colors relative flex-shrink-0 overflow-hidden ${
                       c.enabled ? "bg-blue-600" : "bg-slate-700"
                     }`}
                   >
                     <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${
-                      c.enabled ? "translate-x-4" : "translate-x-0.5"
+                      c.enabled ? "translate-x-5" : "translate-x-0.5"
                     }`} />
                   </button>
-                  <span className="text-sm font-medium text-white">{c.label}</span>
-                  {c.description && (
-                    <span className="text-xs text-slate-500">· {c.description}</span>
-                  )}
+                  <div className="min-w-0">
+                    <span className="text-sm font-medium text-white">{c.label}</span>
+                    {c.description && (
+                      <span className="text-xs text-slate-500 ml-1.5">· {c.description}</span>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold text-white w-10 text-right">{c.weight}%</span>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={c.weight}
+                      disabled={!c.enabled}
+                      onChange={(e) => updateWeight(c.key, Math.min(100, Math.max(0, Number(e.target.value) || 0)))}
+                      className="w-16 bg-slate-800 border border-slate-700 rounded-lg pl-2 pr-6 py-1 text-white text-sm font-semibold text-right focus:outline-none focus:border-blue-500 disabled:opacity-40 font-mono tabular-nums"
+                    />
+                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 text-xs pointer-events-none">%</span>
+                  </div>
                   {c.custom && (
                     <button
                       onClick={() => removeCustomCriterion(c.key)}
-                      className="text-slate-600 hover:text-red-400 text-lg leading-none transition-colors"
+                      className="text-slate-600 hover:text-red-400 text-lg leading-none transition-colors ml-1"
                     >×</button>
                   )}
                 </div>
@@ -231,6 +272,24 @@ export default function SettingsPage() {
               )}
             </div>
           ))}
+
+          {/* Focus shortcuts */}
+          {criteria.some((c) => c.enabled) && (
+            <div className="border-t border-slate-800 pt-4 space-y-2">
+              <p className="text-xs text-slate-500">Focus on one criterion</p>
+              <div className="flex flex-wrap gap-2">
+                {criteria.filter((c) => c.enabled).map((c) => (
+                  <button
+                    key={c.key}
+                    onClick={() => focusOn(c.key)}
+                    className="text-xs px-3 py-1.5 rounded-full border border-slate-700 bg-slate-800 text-slate-300 hover:border-blue-500 hover:text-white transition-colors"
+                  >
+                    {c.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Add custom criterion */}
           {!showAddForm ? (
@@ -277,9 +336,15 @@ export default function SettingsPage() {
         </section>
 
         {/* Save */}
+        {weightSum !== 100 && (
+          <p className="text-sm text-red-400 text-center">
+            Weights must total exactly 100% — currently at {weightSum}%
+          </p>
+        )}
         <button
           onClick={handleSave}
-          className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl text-base transition-colors"
+          disabled={weightSum !== 100}
+          className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold py-4 rounded-xl text-base transition-colors"
         >
           Save & go back
         </button>
