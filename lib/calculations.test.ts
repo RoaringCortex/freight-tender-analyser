@@ -48,7 +48,7 @@ describe("scoreOffers — cost scores sum check", () => {
     it(`lane ${lane}: cheapest forwarder gets cost score 100`, () => {
       const laneOffers = OFFERS.filter((o) => o.lane === lane);
       const weights = { cost: 100, transit: 0, demurrage: 0, reliability: 0 };
-      const scores = scoreOffers(laneOffers, weights);
+      const { scores } = scoreOffers(laneOffers, weights);
       const maxScore = Math.max(...scores.map((s) => s.costScore));
       expect(maxScore).toBeCloseTo(100, 5);
     });
@@ -59,17 +59,17 @@ describe("findWinner — cost-only", () => {
   const weights = { cost: 100, transit: 0, demurrage: 0, reliability: 0 };
 
   it("lane 1 cheapest is K-Logistics Spirit ($3,780)", () => {
-    const scores = scoreOffers(OFFERS.filter((o) => o.lane === 1), weights);
+    const { scores } = scoreOffers(OFFERS.filter((o) => o.lane === 1), weights);
     expect(findWinner(scores)!.offer.forwarder).toBe("K-Logistics Spirit");
   });
 
   it("lane 2 cheapest is K-Logistics Spirit ($3,830)", () => {
-    const scores = scoreOffers(OFFERS.filter((o) => o.lane === 2), weights);
+    const { scores } = scoreOffers(OFFERS.filter((o) => o.lane === 2), weights);
     expect(findWinner(scores)!.offer.forwarder).toBe("K-Logistics Spirit");
   });
 
   it("lane 3 cheapest is Nippon Pacific Cargo ($4,240)", () => {
-    const scores = scoreOffers(OFFERS.filter((o) => o.lane === 3), weights);
+    const { scores } = scoreOffers(OFFERS.filter((o) => o.lane === 3), weights);
     expect(findWinner(scores)!.offer.forwarder).toBe("Nippon Pacific Cargo");
   });
 });
