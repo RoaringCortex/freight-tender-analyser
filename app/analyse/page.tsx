@@ -41,17 +41,7 @@ type AiResult = {
 
 function TrophyIcon() {
   return (
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.75"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
       <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
       <path d="M4 22h16" />
@@ -65,13 +55,13 @@ function TrophyIcon() {
 function ScoreBar({ score }: { score: number }) {
   return (
     <div className="flex items-center gap-3">
-      <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+      <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
         <div
-          className="h-full bg-blue-500 rounded-full"
+          className="h-full bg-blue-700 rounded-full"
           style={{ width: `${Math.min(score, 100)}%` }}
         />
       </div>
-      <span className="font-mono text-xs tabular-nums text-slate-400 w-10 text-right shrink-0">
+      <span className="font-mono text-xs tabular-nums text-gray-400 w-10 text-right shrink-0">
         {score.toFixed(1)}
       </span>
     </div>
@@ -274,10 +264,9 @@ No markdown, no bullet points inside the text.`;
     if (!exportRef.current) return;
     setImageExporting(true);
     try {
-      const node = exportRef.current;
-      const dataUrl = await toPng(node, {
+      const dataUrl = await toPng(exportRef.current, {
         pixelRatio: 2,
-        backgroundColor: "#020617",
+        backgroundColor: "#F7F5F0",
       });
       const link = document.createElement("a");
       link.download = "tender-award.png";
@@ -292,25 +281,23 @@ No markdown, no bullet points inside the text.`;
 
   if (!loaded) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <p className="text-slate-400 text-sm animate-pulse">Loading results…</p>
+      <div className="min-h-screen bg-[#F7F5F0] flex items-center justify-center">
+        <p className="text-gray-400 text-sm animate-pulse">Loading results…</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white flex flex-col">
+    <div className="min-h-screen bg-[#F7F5F0] text-gray-900 flex flex-col">
       {/* Nav */}
-      <nav className="px-8 py-5 flex items-center justify-between border-b border-slate-900">
+      <nav className="px-8 py-5 flex items-center justify-between border-b border-gray-200 bg-[#F7F5F0]">
         <a href="/" className="flex items-center gap-2">
-          <div className="w-7 h-7 bg-blue-500 rounded-md flex items-center justify-center text-white font-bold text-sm">
-            T
-          </div>
-          <span className="font-bold text-lg tracking-tight text-white">TenderAI</span>
+          <div className="w-7 h-7 bg-blue-700 rounded-md flex items-center justify-center text-white font-bold text-sm">T</div>
+          <span className="font-bold text-lg tracking-tight text-gray-900">TenderAI</span>
         </a>
         <button
           onClick={() => router.push("/review")}
-          className="text-sm text-slate-400 hover:text-white transition-colors"
+          className="text-sm text-gray-400 hover:text-gray-900 transition-colors"
         >
           ← Back to review
         </button>
@@ -319,24 +306,23 @@ No markdown, no bullet points inside the text.`;
       <main className="flex-1 max-w-4xl mx-auto w-full px-6 py-10 space-y-10">
         <div ref={exportRef} className="space-y-10 py-2">
 
-          {/* Page heading */}
-          <h1 className="text-3xl font-extrabold text-white tracking-tight">
+          <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
             Award recommendation
           </h1>
 
           {/* Overall winner */}
           {overallWinner ? (
-            <div className="bg-blue-950 border border-blue-800/50 rounded-2xl overflow-hidden">
+            <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
               <div className="px-8 pt-8 pb-7">
                 <div className="flex items-start gap-4">
-                  <div className="mt-0.5 w-9 h-9 rounded-lg bg-blue-900/70 border border-blue-700/50 flex items-center justify-center shrink-0 text-blue-300">
+                  <div className="mt-0.5 w-9 h-9 rounded-lg bg-blue-100 border border-blue-200 flex items-center justify-center shrink-0 text-blue-700">
                     <TrophyIcon />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight leading-tight">
+                    <p className="text-3xl sm:text-4xl font-extrabold text-gray-900 tracking-tight leading-tight">
                       {overallWinner}
                     </p>
-                    <p className="text-blue-300 text-sm mt-1.5">
+                    <p className="text-blue-700 text-sm mt-1.5 font-medium">
                       {overallWinnerLanes.length === 1
                         ? `Wins Lane ${overallWinnerLanes[0]}`
                         : `Wins ${overallWinnerLanes.slice(0, -1).map((l) => `Lane ${l}`).join(", ")} & Lane ${overallWinnerLanes[overallWinnerLanes.length - 1]}`}
@@ -346,50 +332,48 @@ No markdown, no bullet points inside the text.`;
 
                 <div className="mt-7 flex flex-wrap items-start gap-x-8 gap-y-4">
                   <div>
-                    <p className="font-mono text-2xl font-bold text-white tabular-nums">
+                    <p className="font-mono text-2xl font-bold text-gray-900 tabular-nums">
                       ${Math.round(overallAvgTotal).toLocaleString()}
                     </p>
-                    <p className="text-blue-400/80 text-xs mt-0.5">avg. per container</p>
+                    <p className="text-gray-400 text-xs mt-0.5">avg. per container</p>
                   </div>
-                  <div className="hidden sm:block w-px bg-blue-800/40 self-stretch" />
+                  <div className="hidden sm:block w-px bg-gray-200 self-stretch" />
                   <div>
-                    <p className="font-mono text-2xl font-bold text-white tabular-nums">
+                    <p className="font-mono text-2xl font-bold text-gray-900 tabular-nums">
                       {overallAvgScore.toFixed(1)}
-                      <span className="text-blue-700 font-normal text-base"> / 100</span>
+                      <span className="text-gray-400 font-normal text-base"> / 100</span>
                     </p>
-                    <p className="text-blue-400/80 text-xs mt-0.5">avg. weighted score</p>
+                    <p className="text-gray-400 text-xs mt-0.5">avg. weighted score</p>
                   </div>
                 </div>
               </div>
 
-              <div className="px-8 py-6 border-t border-blue-900/50 bg-blue-950/30">
+              <div className="px-8 py-6 border-t border-gray-100 bg-gray-50">
                 {aiLoading && (
                   <div className="animate-pulse space-y-2.5">
-                    <div className="h-3 bg-blue-900/60 rounded-full w-5/6" />
-                    <div className="h-3 bg-blue-900/60 rounded-full w-4/6" />
-                    <div className="h-3 bg-blue-900/60 rounded-full w-2/5" />
+                    <div className="h-3 bg-gray-200 rounded-full w-5/6" />
+                    <div className="h-3 bg-gray-200 rounded-full w-4/6" />
+                    <div className="h-3 bg-gray-200 rounded-full w-2/5" />
                   </div>
                 )}
-                {aiError && (
-                  <p className="text-red-400 text-sm">{aiError}</p>
-                )}
+                {aiError && <p className="text-red-600 text-sm">{aiError}</p>}
                 {aiResult?.overall && (
-                  <p className="text-slate-200 text-sm leading-relaxed">{aiResult.overall}</p>
+                  <p className="text-gray-700 text-sm leading-relaxed">{aiResult.overall}</p>
                 )}
                 {!aiLoading && !aiResult && !aiError && (
-                  <p className="text-blue-800 text-sm">AI analysis unavailable — API key not configured.</p>
+                  <p className="text-gray-400 text-sm">AI analysis unavailable — API key not configured.</p>
                 )}
               </div>
             </div>
           ) : (
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-7 text-slate-400 text-sm">
+            <div className="bg-white border border-gray-200 rounded-2xl p-7 text-gray-500 text-sm">
               No offers were found. Go back and upload quote files.
             </div>
           )}
 
           {/* Lane results */}
           <div>
-            <h2 className="text-lg font-bold text-white mb-5">Lane results</h2>
+            <h2 className="text-lg font-bold text-gray-900 mb-5">Lane results</h2>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {([1, 2, 3] as const).map((lane) => {
                 const w = laneWinners[lane];
@@ -400,17 +384,16 @@ No markdown, no bullet points inside the text.`;
                     key={lane}
                     className={`rounded-2xl p-5 flex flex-col gap-5 ${
                       isOverall
-                        ? "bg-blue-950/30 border border-blue-800/50"
-                        : "bg-slate-900 border border-slate-800"
+                        ? "bg-blue-50 border border-blue-200"
+                        : "bg-white border border-gray-200"
                     }`}
                   >
-                    {/* Card header */}
                     <div className="flex items-center justify-between gap-2 flex-wrap">
-                      <span className="text-xs bg-slate-800 border border-slate-700/80 text-slate-400 px-2.5 py-1 rounded-full font-medium">
+                      <span className="text-xs bg-gray-100 border border-gray-200 text-gray-500 px-2.5 py-1 rounded-full font-medium">
                         Lane {lane}
                       </span>
                       {isOverall && (
-                        <span className="text-xs bg-blue-900/50 border border-blue-700/60 text-blue-300 px-2.5 py-1 rounded-full font-semibold">
+                        <span className="text-xs bg-blue-100 border border-blue-200 text-blue-700 px-2.5 py-1 rounded-full font-semibold">
                           Overall winner
                         </span>
                       )}
@@ -419,46 +402,46 @@ No markdown, no bullet points inside the text.`;
                     {w ? (
                       <>
                         <div>
-                          <p className="text-xs text-slate-500 mb-1">{LANE_NAMES[lane]}</p>
-                          <p className="text-lg font-bold text-white leading-snug">{w.forwarder}</p>
+                          <p className="text-xs text-gray-400 mb-1">{LANE_NAMES[lane]}</p>
+                          <p className="text-lg font-bold text-gray-900 leading-snug">{w.forwarder}</p>
                         </div>
 
                         <div className="space-y-2 text-sm">
                           <div className="flex items-baseline justify-between gap-4">
-                            <span className="text-slate-500 shrink-0">Cost</span>
-                            <span className="font-mono text-white tabular-nums text-right">
+                            <span className="text-gray-400 shrink-0">Cost</span>
+                            <span className="font-mono text-gray-900 tabular-nums text-right">
                               ${w.totalUSD.toLocaleString()}
-                              <span className="text-slate-500 font-normal"> /cont.</span>
+                              <span className="text-gray-400 font-normal"> /cont.</span>
                             </span>
                           </div>
                           <div className="flex items-baseline justify-between gap-4">
-                            <span className="text-slate-500 shrink-0">Transit</span>
-                            <span className="font-mono text-white tabular-nums text-right">
+                            <span className="text-gray-400 shrink-0">Transit</span>
+                            <span className="font-mono text-gray-900 tabular-nums text-right">
                               {w.transitDaysMin}–{w.transitDaysMax}
-                              <span className="text-slate-500 font-normal"> days</span>
+                              <span className="text-gray-400 font-normal"> days</span>
                             </span>
                           </div>
                         </div>
 
                         <div>
-                          <p className="text-xs text-slate-500 mb-2">Weighted score</p>
+                          <p className="text-xs text-gray-400 mb-2">Weighted score</p>
                           <ScoreBar score={w.score} />
                         </div>
 
                         {aiLoading && (
-                          <div className="animate-pulse space-y-1.5 pt-1 border-t border-slate-800">
-                            <div className="h-2.5 bg-slate-800 rounded-full w-full mt-3" />
-                            <div className="h-2.5 bg-slate-800 rounded-full w-3/4" />
+                          <div className="animate-pulse space-y-1.5 pt-1 border-t border-gray-200">
+                            <div className="h-2.5 bg-gray-200 rounded-full w-full mt-3" />
+                            <div className="h-2.5 bg-gray-200 rounded-full w-3/4" />
                           </div>
                         )}
                         {aiResult?.[aiKey] && (
-                          <p className="text-xs text-slate-400 leading-relaxed pt-4 border-t border-slate-800/60">
+                          <p className="text-xs text-gray-500 leading-relaxed pt-4 border-t border-gray-200">
                             {aiResult[aiKey] as string}
                           </p>
                         )}
                       </>
                     ) : (
-                      <p className="text-sm text-slate-600 flex-1">No offers for this lane.</p>
+                      <p className="text-sm text-gray-400 flex-1">No offers for this lane.</p>
                     )}
                   </div>
                 );
@@ -468,17 +451,17 @@ No markdown, no bullet points inside the text.`;
         </div>
 
         {/* Export actions */}
-        <div className="flex justify-end gap-3 pt-6 border-t border-slate-900">
+        <div className="flex justify-end gap-3 pt-6 border-t border-gray-200">
           <button
             onClick={handleExport}
-            className="bg-slate-800 hover:bg-slate-700 active:bg-slate-600 border border-slate-700 text-white font-semibold px-6 py-3 rounded-xl text-sm transition-colors"
+            className="bg-white hover:bg-gray-50 active:bg-gray-100 border border-gray-300 text-gray-700 font-semibold px-6 py-3 rounded-xl text-sm transition-colors"
           >
             {copied ? "Copied ✓" : "Copy as text"}
           </button>
           <button
             onClick={handleImageExport}
             disabled={imageExporting}
-            className="bg-blue-600 hover:bg-blue-500 active:bg-blue-400 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold px-6 py-3 rounded-xl text-sm transition-colors"
+            className="bg-blue-700 hover:bg-blue-800 active:bg-blue-900 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold px-6 py-3 rounded-xl text-sm transition-colors"
           >
             {imageExporting ? "Saving…" : "Save as image"}
           </button>

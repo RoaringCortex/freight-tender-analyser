@@ -125,17 +125,17 @@ export default function SettingsPage() {
     });
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white flex flex-col">
+    <div className="min-h-screen bg-[#F7F5F0] text-gray-900 flex flex-col">
 
       {/* Nav */}
-      <nav className="px-8 py-5 flex items-center justify-between">
+      <nav className="px-8 py-5 flex items-center justify-between border-b border-gray-200">
         <a href="/" className="flex items-center gap-2">
-          <div className="w-7 h-7 bg-blue-500 rounded-md flex items-center justify-center text-white font-bold text-sm">T</div>
-          <span className="font-bold text-lg tracking-tight text-white">TenderAI</span>
+          <div className="w-7 h-7 bg-blue-700 rounded-md flex items-center justify-center text-white font-bold text-sm">T</div>
+          <span className="font-bold text-lg tracking-tight text-gray-900">TenderAI</span>
         </a>
         <button
           onClick={() => router.push("/upload")}
-          className="text-sm text-slate-400 hover:text-white transition-colors"
+          className="text-sm text-gray-500 hover:text-gray-900 transition-colors"
         >
           ← Back to upload
         </button>
@@ -143,33 +143,33 @@ export default function SettingsPage() {
 
       <main className="flex-1 max-w-xl mx-auto w-full px-6 py-8 space-y-8">
         <div>
-          <h1 className="text-2xl font-bold text-white mb-1">Settings</h1>
-          <p className="text-slate-400 text-sm">Configure your company details and scoring preferences.</p>
+          <h1 className="text-2xl font-bold text-gray-900 mb-1">Settings</h1>
+          <p className="text-gray-500 text-sm">Configure your company details and scoring preferences.</p>
         </div>
 
         {/* Company name */}
-        <section className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-3">
-          <h2 className="text-sm font-semibold uppercase tracking-widest text-slate-400">Company</h2>
+        <section className="bg-white border border-gray-200 rounded-2xl p-6 space-y-3">
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-400">Company</h2>
           <input
             type="text"
             placeholder="Your company name"
             value={companyName}
             onChange={(e) => setCompanyName(e.target.value)}
-            className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder:text-slate-500 text-sm focus:outline-none focus:border-blue-500"
+            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 placeholder:text-gray-400 text-sm focus:outline-none focus:border-blue-700"
           />
         </section>
 
         {/* Currency rates */}
-        <section className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+        <section className="bg-white border border-gray-200 rounded-2xl p-6 space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-sm font-semibold uppercase tracking-widest text-slate-400">Currency rates</h2>
-              <p className="text-xs text-slate-500 mt-0.5">1 USD = X foreign currency. Auto-fetched — edit to override.</p>
+              <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-400">Currency rates</h2>
+              <p className="text-xs text-gray-400 mt-0.5">1 USD = X foreign currency. Auto-fetched — edit to override.</p>
             </div>
             <button
               onClick={fetchRates}
               disabled={ratesLoading}
-              className="text-xs text-blue-400 hover:text-blue-300 disabled:opacity-40 transition-colors"
+              className="text-xs text-blue-700 hover:text-blue-800 disabled:opacity-40 transition-colors"
             >
               {ratesLoading ? "Fetching…" : "Refresh"}
             </button>
@@ -177,11 +177,11 @@ export default function SettingsPage() {
           {SUPPORTED_CURRENCIES.map((c) => (
             <div key={c.code} className="flex items-center justify-between gap-4">
               <div>
-                <span className="text-sm font-medium text-white">{c.code}</span>
-                <span className="text-xs text-slate-500 ml-2">{c.name}</span>
+                <span className="text-sm font-medium text-gray-900">{c.code}</span>
+                <span className="text-xs text-gray-400 ml-2">{c.name}</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-500">1 USD =</span>
+                <span className="text-xs text-gray-400">1 USD =</span>
                 <input
                   type="number"
                   min="0"
@@ -189,30 +189,30 @@ export default function SettingsPage() {
                   value={exchangeRates[c.code] ?? ""}
                   placeholder="—"
                   onChange={(e) => setExchangeRates((prev) => ({ ...prev, [c.code]: Number(e.target.value) }))}
-                  className="w-24 bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-white text-sm text-right focus:outline-none focus:border-blue-500"
+                  className="w-24 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-gray-900 text-sm text-right focus:outline-none focus:border-blue-700 font-mono tabular-nums"
                 />
-                <span className="text-xs text-slate-400 w-8">{c.code}</span>
+                <span className="text-xs text-gray-500 w-8">{c.code}</span>
               </div>
             </div>
           ))}
         </section>
 
         {/* Scoring weights */}
-        <section className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-5">
+        <section className="bg-white border border-gray-200 rounded-2xl p-6 space-y-5">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <h2 className="text-sm font-semibold uppercase tracking-widest text-slate-400">Scoring weights</h2>
+              <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-400">Scoring weights</h2>
               {!isDefaultSettings && (
                 <button
                   onClick={resetToDefault}
-                  className="text-xs text-slate-500 hover:text-white transition-colors underline underline-offset-2"
+                  className="text-xs text-gray-400 hover:text-gray-900 transition-colors underline underline-offset-2"
                 >
                   Reset to default
                 </button>
               )}
             </div>
-            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${
-              weightSum === 100 ? "bg-emerald-900 text-emerald-400" : "bg-amber-900 text-amber-400"
+            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full whitespace-nowrap font-mono tabular-nums ${
+              weightSum === 100 ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-amber-50 text-amber-700 border border-amber-200"
             }`}>
               {weightSum}% {weightSum === 100 ? "✓" : "— must total 100%"}
             </span>
@@ -225,7 +225,7 @@ export default function SettingsPage() {
                   <button
                     onClick={() => toggleCriterion(c.key)}
                     className={`w-10 h-5 rounded-full transition-colors relative flex-shrink-0 overflow-hidden ${
-                      c.enabled ? "bg-blue-600" : "bg-slate-700"
+                      c.enabled ? "bg-blue-700" : "bg-gray-300"
                     }`}
                   >
                     <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${
@@ -233,9 +233,9 @@ export default function SettingsPage() {
                     }`} />
                   </button>
                   <div className="min-w-0">
-                    <span className="text-sm font-medium text-white">{c.label}</span>
+                    <span className="text-sm font-medium text-gray-900">{c.label}</span>
                     {c.description && (
-                      <span className="text-xs text-slate-500 ml-1.5">· {c.description}</span>
+                      <span className="text-xs text-gray-400 ml-1.5">· {c.description}</span>
                     )}
                   </div>
                 </div>
@@ -248,14 +248,14 @@ export default function SettingsPage() {
                       value={c.weight}
                       disabled={!c.enabled}
                       onChange={(e) => updateWeight(c.key, Math.min(100, Math.max(0, Number(e.target.value) || 0)))}
-                      className="w-16 bg-slate-800 border border-slate-700 rounded-lg pl-2 pr-6 py-1 text-white text-sm font-semibold text-right focus:outline-none focus:border-blue-500 disabled:opacity-40 font-mono tabular-nums"
+                      className="w-16 bg-gray-50 border border-gray-200 rounded-lg pl-2 pr-6 py-1 text-gray-900 text-sm font-semibold text-right focus:outline-none focus:border-blue-700 disabled:opacity-40 font-mono tabular-nums"
                     />
-                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 text-xs pointer-events-none">%</span>
+                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none">%</span>
                   </div>
                   {c.custom && (
                     <button
                       onClick={() => removeCustomCriterion(c.key)}
-                      className="text-slate-600 hover:text-red-400 text-lg leading-none transition-colors ml-1"
+                      className="text-gray-300 hover:text-red-500 text-lg leading-none transition-colors ml-1"
                     >×</button>
                   )}
                 </div>
@@ -267,7 +267,7 @@ export default function SettingsPage() {
                   max={100}
                   value={c.weight}
                   onChange={(e) => updateWeight(c.key, Number(e.target.value))}
-                  className="w-full accent-blue-500"
+                  className="w-full accent-blue-700"
                 />
               )}
             </div>
@@ -275,14 +275,14 @@ export default function SettingsPage() {
 
           {/* Focus shortcuts */}
           {criteria.some((c) => c.enabled) && (
-            <div className="border-t border-slate-800 pt-4 space-y-2">
-              <p className="text-xs text-slate-500">Focus on one criterion</p>
+            <div className="border-t border-gray-100 pt-4 space-y-2">
+              <p className="text-xs text-gray-400">Focus on one criterion</p>
               <div className="flex flex-wrap gap-2">
                 {criteria.filter((c) => c.enabled).map((c) => (
                   <button
                     key={c.key}
                     onClick={() => focusOn(c.key)}
-                    className="text-xs px-3 py-1.5 rounded-full border border-slate-700 bg-slate-800 text-slate-300 hover:border-blue-500 hover:text-white transition-colors"
+                    className="text-xs px-3 py-1.5 rounded-full border border-gray-200 bg-white text-gray-600 hover:border-blue-700 hover:text-blue-700 transition-colors"
                   >
                     {c.label}
                   </button>
@@ -295,38 +295,38 @@ export default function SettingsPage() {
           {!showAddForm ? (
             <button
               onClick={() => setShowAddForm(true)}
-              className="text-sm text-blue-400 hover:text-blue-300 underline underline-offset-2 transition-colors"
+              className="text-sm text-blue-700 hover:text-blue-800 underline underline-offset-2 transition-colors"
             >
               + Add custom criterion
             </button>
           ) : (
-            <div className="bg-slate-800 border border-slate-700 rounded-xl p-4 space-y-3">
-              <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">New criterion</p>
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-widest text-gray-400">New criterion</p>
               <input
                 type="text"
                 placeholder="Criterion name (e.g. Carbon footprint)"
                 value={newLabel}
                 onChange={(e) => setNewLabel(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white placeholder:text-slate-500 text-sm focus:outline-none focus:border-blue-500"
+                className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-gray-900 placeholder:text-gray-400 text-sm focus:outline-none focus:border-blue-700"
               />
               <input
                 type="text"
                 placeholder="How to calculate (e.g. lower CO₂ per TEU = higher score)"
                 value={newDescription}
                 onChange={(e) => setNewDescription(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white placeholder:text-slate-500 text-sm focus:outline-none focus:border-blue-500"
+                className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-gray-900 placeholder:text-gray-400 text-sm focus:outline-none focus:border-blue-700"
               />
               <div className="flex gap-2">
                 <button
                   onClick={addCustomCriterion}
                   disabled={!newLabel.trim()}
-                  className="bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white font-semibold px-4 py-2 rounded-lg text-sm transition-colors"
+                  className="bg-blue-700 hover:bg-blue-800 disabled:opacity-40 text-white font-semibold px-4 py-2 rounded-lg text-sm transition-colors"
                 >
                   Add
                 </button>
                 <button
                   onClick={() => { setShowAddForm(false); setNewLabel(""); setNewDescription(""); }}
-                  className="bg-slate-700 hover:bg-slate-600 text-slate-300 font-medium px-4 py-2 rounded-lg text-sm transition-colors"
+                  className="bg-white border border-gray-200 hover:bg-gray-50 text-gray-600 font-medium px-4 py-2 rounded-lg text-sm transition-colors"
                 >
                   Cancel
                 </button>
@@ -337,14 +337,14 @@ export default function SettingsPage() {
 
         {/* Save */}
         {weightSum !== 100 && (
-          <p className="text-sm text-red-400 text-center">
+          <p className="text-sm text-red-500 text-center">
             Weights must total exactly 100% — currently at {weightSum}%
           </p>
         )}
         <button
           onClick={handleSave}
           disabled={weightSum !== 100}
-          className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold py-4 rounded-xl text-base transition-colors"
+          className="w-full bg-blue-700 hover:bg-blue-800 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold py-4 rounded-xl text-base transition-colors"
         >
           Save & go back
         </button>
