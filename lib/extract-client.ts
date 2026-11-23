@@ -126,6 +126,7 @@ function convertCurrency(offers: object[], exchangeRates?: Record<string, number
     if (!rate) return o;
     return {
       ...o,
+      currency: "USD",
       _originalCurrency: currency,
       _originalOceanFreight: o.oceanFreightUSD,
       oceanFreightUSD: Math.round(o.oceanFreightUSD / rate),
