@@ -303,19 +303,19 @@ export default function UploadPage() {
       {/* ── First-time modal ── */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-          <div className="bg-white border border-gray-200 rounded-2xl p-8 max-w-sm w-full text-center shadow-xl">
-            <div className="w-12 h-12 bg-blue-700 rounded-xl flex items-center justify-center mx-auto mb-4">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <div className="bg-white border border-gray-200 rounded-2xl p-10 max-w-md w-full text-center shadow-xl">
+            <div className="w-16 h-16 bg-blue-700 rounded-2xl flex items-center justify-center mx-auto mb-5">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
               </svg>
             </div>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">Welcome to TenderAI</h2>
-            <p className="text-gray-500 text-sm mb-6">Have you used this tool before?</p>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome to TenderAI</h2>
+            <p className="text-gray-500 text-base mb-8">Have you used this tool before?</p>
             <div className="flex flex-col gap-3">
-              <button onClick={skipModal} className="bg-blue-700 hover:bg-blue-800 text-white font-semibold py-3 rounded-xl transition-colors">
+              <button onClick={skipModal} className="bg-blue-700 hover:bg-blue-800 text-white font-semibold py-4 rounded-xl text-base transition-colors">
                 Yes, I know how it works
               </button>
-              <button onClick={startTour} className="bg-gray-100 hover:bg-gray-200 text-gray-600 font-medium py-3 rounded-xl transition-colors">
+              <button onClick={startTour} className="bg-gray-100 hover:bg-gray-200 text-gray-600 font-medium py-4 rounded-xl text-base transition-colors">
                 No, show me around
               </button>
             </div>
